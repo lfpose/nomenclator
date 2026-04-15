@@ -1333,7 +1333,7 @@ Key features: prompt review (optional AI validation), row subset (test with firs
       "Verify: cd backend && uv run pytest tests/reliability/test_04_duplicates_consistent.py -v"
     ],
     "test": "cd backend && uv run pytest tests/reliability/test_04_duplicates_consistent.py -v",
-    "passes": false
+    "passes": true
   },
   {
     "id": "P12-05",

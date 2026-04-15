@@ -2,12 +2,24 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 88
-**Current Task:** P12-02 (completed)
+**Tasks Completed:** 89
+**Current Task:** P12-04 (completed)
 
 ---
 
 ## Session Log
+
+### 2026-04-15 — P12-04: Test 4: Duplicates get identical answers
+- Created `backend/tests/reliability/test_04_duplicates_consistent.py` with 3 assertions:
+  - `test_all_duplicate_originals_have_same_male_es`: verifies all 10 duplicate "Jefe de Compras" rows have identical male_es
+  - `test_all_duplicate_originals_have_same_female_es`: verifies all 10 duplicate "Jefe de Compras" rows have identical female_es
+  - `test_all_duplicate_originals_have_same_category`: verifies all 10 duplicate "Jefe de Compras" rows have identical category
+- Test uses input with 10 × "Jefe de Compras" + 5 other distinct titles (total 15 titles)
+- Tests run the full E2E flow (preview → commit → fake batch → export) and parse the output CSV
+- Tests group output rows by original title and verify all duplicate originals have byte-identical answer columns
+- Removed unused `pytest` import flagged by ruff
+- Test: `cd backend && uv run pytest tests/reliability/test_04_duplicates_consistent.py -v` — **PASS** (3 tests)
+- Also verified: `cd backend && uv run ruff check tests/reliability/test_04_duplicates_consistent.py` — **PASS**
 
 ### 2026-04-15 — P12-03: Test 3: Every input row is in output
 - Created `backend/tests/reliability/test_03_input_output_set.py` with 2 assertions:
