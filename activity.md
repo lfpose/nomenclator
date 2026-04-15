@@ -2,12 +2,29 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 43
-**Current Task:** P06-04
+**Tasks Completed:** 44
+**Current Task:** P07-01
 
 ---
 
 ## Session Log
+
+### 2026-04-15 — P07-01: State machine validator
+- Created `backend/app/jobs/state_machine.py` with state machine validator for job status transitions
+- `ALLOWED_TRANSITIONS` dict defines all valid transitions between job states: draft, preview, queued, submitted, polling, retrying, completed, failed, cancelled
+- `is_allowed(from_state, to_state)` returns True if transition is valid
+- `assert_allowed(from_state, to_state)` raises ValueError if transition is invalid
+- Created `backend/tests/jobs/test_state_machine.py` with 8 assertions:
+  - `test_allowed_draft_to_preview`: verifies draft -> preview is allowed
+  - `test_allowed_preview_to_queued`: verifies preview -> queued is allowed
+  - `test_allowed_polling_to_completed`: verifies polling -> completed is allowed
+  - `test_disallowed_completed_to_anything`: verifies completed state has no outgoing transitions
+  - `test_disallowed_failed_to_anything`: verifies failed state has no outgoing transitions
+  - `test_disallowed_cancelled_to_anything`: verifies cancelled state has no outgoing transitions
+  - `test_disallowed_skip_states`: verifies draft -> submitted is disallowed (must go through preview/queued)
+  - `test_assert_allowed_raises_on_invalid`: verifies assert_allowed raises ValueError on invalid transition
+- Test: `cd backend && uv run pytest tests/jobs/test_state_machine.py -v` — **PASS** (8 tests)
+- Also verified: `cd backend && uv run ruff check app/jobs/state_machine.py tests/jobs/test_state_machine.py` — **PASS**
 
 ### 2026-04-15 — P06-03: Record actual spend
 - Extended `backend/app/jobs/estimator.py` with `record_actual_spend()` function
