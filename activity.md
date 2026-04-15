@@ -2,12 +2,25 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 67
-**Current Task:** P09-04
+**Tasks Completed:** 68
+**Current Task:** P10-01
 
 ---
 
 ## Session Log
+
+### 2026-04-15 — P09-05: Auth configuration and loader
+- Created `backend/app/auth/config.py` with `get_password_hash()` function
+- `get_password_hash()` retrieves `settings.auth_password_hash`, validates it's not empty and starts with '$argon2', raises RuntimeError otherwise
+- Created `backend/tests/auth/test_config.py` with 3 assertions:
+  - `test_valid_hash_returned`: verifies a valid argon2 hash is returned correctly
+  - `test_missing_hash_raises`: verifies empty/missing hash raises RuntimeError with correct message
+  - `test_non_argon2_hash_raises`: verifies non-argon2 hash raises RuntimeError with correct message
+- Created `backend/.env.example` with environment variable examples including `AUTH_PASSWORD_HASH=` and documentation for generating the hash
+- All tests monkeypatch `settings.settings.auth_password_hash` to test different scenarios
+- Test: `cd backend && uv run pytest tests/auth/test_config.py -v` — **PASS** (3 tests)
+- Also verified: All 22 auth tests pass (5 from P09-01 + 6 from P09-02 + 4 from P09-03 + 4 from P09-04 + 3 from P09-05)
+- Also verified: `cd backend && uv run ruff check app/auth/config.py tests/auth/test_config.py` — **PASS**
 
 ### 2026-04-15 — P09-04: Rate limiter (in-memory token bucket)
 - Created `backend/app/auth/rate_limit.py` with `RateLimiter` class implementing sliding window token bucket using `deque`
