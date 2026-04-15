@@ -110,10 +110,18 @@ export async function postForm<T>(url: string, formData: FormData): Promise<T> {
 }
 
 /**
+ * Make a POST request to /auth/logout to destroy the session
+ */
+export async function logout(): Promise<{ ok: boolean }> {
+  return post<{ ok: boolean }>("/auth/logout", {});
+}
+
+/**
  * Exported API object for easy imports
  */
 export const api = {
   get,
   post,
   postForm,
+  logout,
 };

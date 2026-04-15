@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 import "@testing-library/jest-dom/vitest";
 
 // Polyfill PointerEvent for jsdom
@@ -16,3 +17,6 @@ if (!global.PointerEvent) {
     }
   } as any;
 }
+
+// Mock window.scrollTo for TanStack Router scroll restoration
+window.scrollTo = vi.fn();

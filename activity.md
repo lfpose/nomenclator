@@ -2,12 +2,43 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 97
-**Current Task:** P13-04 (completed)
+**Tasks Completed:** 98
+**Current Task:** P13-05 (completed)
 
 ---
 
 ## Session Log
+
+### 2026-04-15 — P13-05: Root layout
+- Added `logout()` function to `frontend/src/lib/api.ts` that calls POST /auth/logout
+- Created `frontend/src/components/Header.tsx` with:
+  - Sticky header with backdrop-blur and border-b styling
+  - Wordmark "nomenclator" in serif font (font-serif)
+  - 3 nav links using TanStack Router `<Link>` component (Tool, About, Docs)
+  - ThemeToggle component on the right
+  - Logout button with LogOut icon that calls api.logout() and reloads page
+  - Loading state handling for logout operation
+- Created `frontend/src/components/Footer.tsx` with:
+  - Footer element with border-t and py-6 styling
+  - Centered text with "Nomenclator · v1.0 · built for a single operator · quis custodiet ipsos custodes?"
+- Updated `frontend/src/routes/__root.tsx` to use both Header and Footer:
+  - Added min-h-screen flex-col layout structure
+  - Header at top, main with Outlet in middle, Footer at bottom
+- Added `window.scrollTo` mock to `frontend/tests/setup.ts` to fix TanStack Router scroll restoration in jsdom
+- Created `frontend/tests/root-layout.test.tsx` with 5 assertions:
+  - `test("renders wordmark")`: verifies wordmark is present and has font-serif class
+  - `test("header has 3 nav links")`: verifies Tool, About, Docs links are present
+  - `test("header has theme toggle button")`: verifies theme toggle button with correct aria-label
+  - `test("header has logout button")`: verifies logout button with correct aria-label
+  - `test("footer is rendered")`: verifies footer element is present and contains "nomenclator" text
+- Used `createMemoryHistory` and `createRouter` to provide proper RouterProvider context for TanStack Router Link components
+- Used async queries (`findByText`, `findByRole`) to wait for router initialization before asserting
+- Mocked ThemeToggle and api.logout functions to avoid side effects in tests
+- Test: `cd frontend && pnpm test --run tests/root-layout.test.tsx` — **PASS** (5 tests)
+- Also verified: `cd frontend && pnpm build` — **PASS**
+- Also verified: `cd frontend && pnpm tsc --noEmit` — **PASS**
+
+---
 
 ### 2026-04-15 — P13-04: Auth gate component
 - Created `frontend/src/components/PasswordForm.tsx` with password input and submit button:

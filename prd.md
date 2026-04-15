@@ -1470,7 +1470,7 @@ Key features: prompt review (optional AI validation), row subset (test with firs
       "Verify: cd frontend && pnpm test --run tests/root-layout.test.tsx"
     ],
     "test": "cd frontend && pnpm test --run tests/root-layout.test.tsx",
-    "passes": false
+    "passes": true
   },
   {
     "id": "P13-06",
