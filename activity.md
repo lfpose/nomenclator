@@ -2,12 +2,34 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 47
-**Current Task:** P07-04
+**Tasks Completed:** 48
+**Current Task:** P07-05
 
 ---
 
 ## Session Log
+
+### 2026-04-15 — P07-05: Recluster existing job
+- Extended `backend/app/jobs/service.py` with `recluster_job(conn, job_id, threshold) -> PreviewResult` function
+- Validates job is in 'preview' state, raises ValueError('invalid_state') if not
+- Fetches existing job_rows with cached normalized values from DB, reconstructs rows list for clustering
+- Deletes old clusters via `clusters_dao.delete_clusters_for_job()` and clears cluster assignments via `job_rows_dao.clear_clusters()`
+- Runs `run_clustering()` with new threshold and inserts new clusters
+- Updates job's fuzzy_threshold to the new value via direct SQL UPDATE
+- Assigns cluster_id to rows and marks representative row for each cluster
+- Recomputes cost estimate via `estimate_job_cost()` and updates job counts via `jobs_dao.update_job_counts()`
+- Returns PreviewResult with updated cluster details and top 10 largest clusters
+- Emits warnings for clusters larger than 50 members (type='large_cluster')
+- Created `backend/tests/jobs/test_recluster.py` with 5 assertions:
+  - `test_recluster_replaces_previous_clusters`: verifies old clusters are deleted and new ones created
+  - `test_recluster_preserves_job_rows_and_originals`: verifies job rows and original values are not modified
+  - `test_recluster_updates_cost_estimate`: verifies cost estimate is recalculated and updated
+  - `test_recluster_raises_on_non_preview_state`: verifies ValueError raised for non-preview jobs
+  - `test_recluster_stricter_threshold_produces_more_clusters`: verifies stricter threshold produces more clusters
+- Fixed test to use valid state transition (preview → cancelled) instead of preview → completed (not allowed by state machine)
+- Test: `cd backend && uv run pytest tests/jobs/test_recluster.py -v` — **PASS** (5 tests)
+- Also verified: `cd backend && uv run ruff check app/jobs/service.py tests/jobs/test_recluster.py` — **PASS**
+- All 42 job tests still pass
 
 ### 2026-04-15 — P07-04: Create job from preview
 - Extended `backend/app/jobs/service.py` with `create_preview_job(conn, *, file_bytes, text, threshold, titles_per_request) -> PreviewResult` function
