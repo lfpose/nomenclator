@@ -2,12 +2,27 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 50
-**Current Task:** P07-07
+**Tasks Completed:** 51
+**Current Task:** P07-08
 
 ---
 
 ## Session Log
+
+### 2026-04-15 — P07-08: Record actual cost on batch completion
+- Extended `backend/app/jobs/service.py` with `record_batch_cost(conn, *, job_id, batch_id, input_tokens, output_tokens) -> float` function
+- Simple wrapper function that delegates to `estimator.record_actual_spend` for computing and recording USD spend
+- Called by the worker after parsing batch results from Anthropic
+- Takes job_id, batch_id, input_tokens, and output_tokens as parameters
+- Returns the computed USD amount
+- Created `backend/tests/jobs/test_record_cost.py` with 2 assertions:
+  - `test_record_batch_cost_inserts_spend_log_entry`: verifies spend log entry is inserted with correct values
+  - `test_record_batch_cost_returns_usd`: verifies correct USD calculation (100K input + 50K output = $0.14 with Haiku pricing)
+- Fixed FOREIGN KEY constraint issue by using batch_id=None in tests (since real batches don't exist in test DB)
+- Fixed expected USD calculation to use correct Haiku pricing constants (HAIKU_BATCH_IN_USD_PER_MTOK=0.4, HAIKU_BATCH_OUT_USD_PER_MTOK=2.0)
+- Test: `cd backend && uv run pytest tests/jobs/test_record_cost.py -v` — **PASS** (2 tests)
+- Also verified: `cd backend && uv run ruff check app/jobs/service.py tests/jobs/test_record_cost.py` — **PASS**
+- All 57 job tests still pass
 
 ### 2026-04-15 — P07-07: Cancel job
 - Extended `backend/app/jobs/service.py` with `cancel_job(conn, client, job_id) -> None` function

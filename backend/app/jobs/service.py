@@ -487,3 +487,36 @@ def cancel_job(
 
     # Step 4: Transition job to cancelled
     transition(conn, job_id, "cancelled", reason="operator_cancel")
+
+
+def record_batch_cost(
+    conn: "Connection",
+    *,
+    job_id: str,
+    batch_id: str,
+    input_tokens: int,
+    output_tokens: int,
+) -> float:
+    """Record actual spend from Anthropic batch API response.
+
+    Helper called by the worker after parsing batch results.
+
+    Args:
+        conn: Database connection
+        job_id: Job ID
+        batch_id: Batch ID
+        input_tokens: Number of input tokens consumed
+        output_tokens: Number of output tokens consumed
+
+    Returns:
+        The computed USD amount
+    """
+    from .estimator import record_actual_spend
+
+    return record_actual_spend(
+        conn,
+        job_id=job_id,
+        batch_id=batch_id,
+        input_tokens=input_tokens,
+        output_tokens=output_tokens,
+    )
