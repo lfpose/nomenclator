@@ -2,12 +2,30 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 51
-**Current Task:** P07-08
+**Tasks Completed:** 53
+**Current Task:** P07-09
 
 ---
 
 ## Session Log
+
+### 2026-04-15 — P07-09: Create preview with row subset
+- Refactored `backend/app/jobs/service.py` to fix `create_preview_job` and `recluster_job` functions for handling row subset functionality
+- Changed order of operations: create job first (to get job_id for deterministic subset seeding), then apply subset, then cluster
+- Fixed critical bug: changed `all_job_rows[row_idx]` to `next((r for r in all_job_rows if r.row_index == row_idx), None)` to correctly find job rows by their original row_index values
+- This bug caused IndexError when using random_n or first_n subset modes because row_index values are preserved from input but don't match list positions
+- Fixed same issue in both create_preview_job and recluster_job functions (4 locations total)
+- Added mapping from row_index to original for efficient lookup in top_clusters building
+- Created `backend/tests/jobs/test_preview_subset.py` with 6 assertions:
+  - `test_preview_all_mode_processes_all_rows`: verifies 'all' mode processes all input rows
+  - `test_preview_first_n_processes_only_n_rows`: verifies 'first_n' mode processes only the first N rows
+  - `test_preview_random_n_processes_only_n_rows`: verifies 'random_n' mode processes exactly N rows deterministically
+  - `test_preview_subset_larger_than_input_uses_all`: verifies subset N larger than input count uses all rows
+  - `test_preview_stores_row_subset_mode_on_job`: verifies row subset mode is stored on the job
+  - `test_preview_result_includes_total_and_selected_counts`: verifies PreviewResult includes total_input_rows and selected_rows
+- Test: `cd backend && uv run pytest tests/jobs/test_preview_subset.py -v` — **PASS** (6 tests)
+- Also verified: `cd backend && uv run ruff check app/jobs/service.py tests/jobs/test_preview_subset.py` — **PASS**
+- All 63 job tests pass (including 6 new tests)
 
 ### 2026-04-15 — P07-08: Record actual cost on batch completion
 - Extended `backend/app/jobs/service.py` with `record_batch_cost(conn, *, job_id, batch_id, input_tokens, output_tokens) -> float` function

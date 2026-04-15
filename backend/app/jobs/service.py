@@ -58,6 +58,8 @@ class PreviewResult:
     """Result of creating a preview job."""
     job_id: str
     total_rows: int
+    total_input_rows: int  # Before subset
+    selected_rows: int  # After subset
     exact_unique_rows: int
     cluster_count: int
     largest_cluster_size: int
@@ -73,6 +75,8 @@ def create_preview_job(
     text: str | None = None,
     threshold: int = 90,
     titles_per_request: int = 25,
+    row_subset_mode: str = "all",
+    row_subset_n: int | None = None,
 ) -> PreviewResult:
     """Create a preview job by ingesting, clustering, and persisting data.
 
@@ -82,6 +86,8 @@ def create_preview_job(
         text: Pasted text with one title per line (optional)
         threshold: Clustering similarity threshold (0-100)
         titles_per_request: Number of titles per Anthropic batch request
+        row_subset_mode: Row subset mode ('all', 'first_n', 'random_n')
+        row_subset_n: Number of rows for 'first_n' or 'random_n' modes
 
     Returns:
         PreviewResult with job details, cost estimate, and top clusters
@@ -92,24 +98,32 @@ def create_preview_job(
     """
     # Step 1: Ingest and normalize input
     rows = ingest(file_bytes=file_bytes, text=text)
-    total_rows = len(rows)
+    total_input_rows = len(rows)
 
-    # Step 2: Run clustering
-    cluster_results = run_clustering(rows, threshold)
-    cluster_count = len(cluster_results)
-
-    # Step 3: Create job in 'draft' state
+    # Step 2: Create job first to get job_id for deterministic subset seeding
     job_id = jobs_dao.create_job(
         conn,
         task_template_id="job_titles_es",
         fuzzy_threshold=threshold,
         titles_per_request=titles_per_request,
+        row_subset_mode=row_subset_mode,
+        row_subset_n=row_subset_n,
     )
 
-    # Step 4: Bulk insert job rows
+    # Step 3: Apply row subset if requested (uses actual job_id for seeding)
+    from app.csv_io.subset import apply_row_subset
+
+    rows = apply_row_subset(rows, row_subset_mode, row_subset_n, job_id)
+    total_rows = len(rows)
+
+    # Step 4: Run clustering
+    cluster_results = run_clustering(rows, threshold)
+    cluster_count = len(cluster_results)
+
+    # Step 5: Bulk insert job rows (only the subset)
     job_rows_dao.bulk_insert_rows(conn, job_id, rows)
 
-    # Step 5: Insert clusters and assign to rows
+    # Step 6: Insert clusters and assign to rows
     warnings: list[dict] = []
     largest_cluster_size = 0
 
@@ -145,20 +159,21 @@ def create_preview_job(
         # The representative row is the one with the representative_original text
         rep_row_id: int | None = None
         for row_idx in cluster.member_row_indices:
-            row_data = all_job_rows[row_idx]  # rows are ordered by row_index
-            if row_data.original == cluster.representative_original:
+            # Find the job_row with matching row_index (not list position)
+            row_data = next((r for r in all_job_rows if r.row_index == row_idx), None)
+            if row_data is not None and row_data.original == cluster.representative_original:
                 rep_row_id = row_data.id
                 break
 
         job_rows_dao.assign_cluster(conn, row_ids, cluster_db_id, rep_row_id)
 
-    # Step 6: Compute cost estimate
+    # Step 7: Compute cost estimate
     est_cost = estimate_job_cost(cluster_count, titles_per_request)
 
-    # Step 7: Calculate exact unique rows (after dedup)
+    # Step 8: Calculate exact unique rows (after dedup)
     exact_unique = len(set(normalized for _, _, normalized in rows))
 
-    # Step 8: Update job counts
+    # Step 9: Update job counts
     jobs_dao.update_job_counts(
         conn,
         job_id=job_id,
@@ -168,17 +183,19 @@ def create_preview_job(
         est_cost_usd=est_cost,
     )
 
-    # Step 9: Transition to 'preview' state
+    # Step 10: Transition to 'preview' state
     transition(conn, job_id, "preview", reason="preview_created")
 
-    # Step 10: Build top clusters (largest 10)
+    # Step 11: Build top clusters (largest 10)
     sorted_clusters = sorted(cluster_results, key=lambda c: c.member_count, reverse=True)[:10]
+    # Build a mapping from row_index to original for efficient lookup
+    original_by_index = {r.row_index: r.original for r in all_job_rows}
     top_clusters = [
         {
             "representative": c.representative_original,
             "member_count": c.member_count,
             "members": [
-                all_job_rows[idx].original
+                original_by_index[idx]
                 for idx in sorted(c.member_row_indices)
             ],
         }
@@ -188,6 +205,8 @@ def create_preview_job(
     return PreviewResult(
         job_id=job_id,
         total_rows=total_rows,
+        total_input_rows=total_input_rows,
+        selected_rows=total_rows,
         exact_unique_rows=exact_unique,
         cluster_count=cluster_count,
         largest_cluster_size=largest_cluster_size,
@@ -282,8 +301,9 @@ def recluster_job(
         # Find representative row ID
         rep_row_id: int | None = None
         for row_idx in cluster.member_row_indices:
-            row_data = fresh_job_rows[row_idx]  # rows are ordered by row_index
-            if row_data.original == cluster.representative_original:
+            # Find the job_row with matching row_index (not list position)
+            row_data = next((r for r in fresh_job_rows if r.row_index == row_idx), None)
+            if row_data is not None and row_data.original == cluster.representative_original:
                 rep_row_id = row_data.id
                 break
 
@@ -306,12 +326,14 @@ def recluster_job(
 
     # Step 11: Build top clusters (largest 10)
     sorted_clusters = sorted(cluster_results, key=lambda c: c.member_count, reverse=True)[:10]
+    # Build a mapping from row_index to original for efficient lookup
+    original_by_index = {r.row_index: r.original for r in fresh_job_rows}
     top_clusters = [
         {
             "representative": c.representative_original,
             "member_count": c.member_count,
             "members": [
-                fresh_job_rows[idx].original
+                original_by_index[idx]
                 for idx in sorted(c.member_row_indices)
             ],
         }
@@ -319,9 +341,12 @@ def recluster_job(
     ]
 
     # Return PreviewResult (job_id, total_rows unchanged)
+    # For recluster, total_input_rows and selected_rows are the same as total_rows
     return PreviewResult(
         job_id=job_id,
         total_rows=job.total_rows,
+        total_input_rows=job.total_rows,
+        selected_rows=job.total_rows,
         exact_unique_rows=exact_unique,
         cluster_count=cluster_count,
         largest_cluster_size=largest_cluster_size,

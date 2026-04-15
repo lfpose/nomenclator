@@ -794,7 +794,7 @@ Key features: prompt review (optional AI validation), row subset (test with firs
       "Verify: cd backend && uv run pytest tests/jobs/test_preview_subset.py -v"
     ],
     "test": "cd backend && uv run pytest tests/jobs/test_preview_subset.py -v",
-    "passes": false
+    "passes": true
   },
   {
     "id": "P07-10",
