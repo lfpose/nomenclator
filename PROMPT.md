@@ -1,8 +1,6 @@
-@prd.md @activity.md
-
 We are building Nomenclator — a web tool that standardizes messy job titles into canonical Spanish forms. The full spec is in `spec/` and detailed task instructions are in `plan/`.
 
-First read activity.md to see what was recently accomplished.
+First read activity.md to see what was recently accomplished, then read prd.md to find the next task.
 
 ## Project Structure
 

@@ -33,7 +33,7 @@ Key features: prompt review (optional AI validation), row subset (test with firs
       "Verify: python -c 'import backend.app' succeeds"
     ],
     "test": "find backend frontend -type d | sort > /tmp/dirs.txt && diff /tmp/dirs.txt plan/fixtures/expected-dirs.txt",
-    "passes": false
+    "passes": true
   },
   {
     "id": "P01-02",

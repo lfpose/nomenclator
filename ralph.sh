@@ -18,6 +18,13 @@
 
 set -e
 
+# Auto-load .env if present
+if [ -f ".env" ]; then
+  set -a
+  source .env
+  set +a
+fi
+
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -78,7 +85,7 @@ if [ "$AGENT" = "pi" ]; then
     echo -e "${RED}Error: OPENROUTER_API_KEY not set. Run: source .env${NC}"
     exit 1
   fi
-  AGENT_CMD="pi -p --provider openrouter --model $MODEL --no-session --thinking medium"
+  AGENT_CMD="pi -p --provider openrouter --model $MODEL --no-session --thinking medium @prd.md @activity.md"
   echo -e "Agent: ${GREEN}Pi + OpenRouter${NC}"
   echo -e "Model: ${GREEN}$MODEL${NC}"
 elif [ "$AGENT" = "claude" ]; then
