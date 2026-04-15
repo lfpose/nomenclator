@@ -2,12 +2,28 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 90
-**Current Task:** P12-05 (completed)
+**Tasks Completed:** 91
+**Current Task:** P12-06 (completed)
 
 ---
 
 ## Session Log
+
+### 2026-04-15 — P12-06: Test 6: Malformed JSON triggers schema_violation
+- Created `backend/tests/reliability/test_06_malformed_json.py` with 4 assertions:
+  - `test_malformed_request_marked_schema_violation`: verifies mock Anthropic returns schema-invalid response (missing male_es field), cluster is marked with schema_violation error, retry batch provides valid response, cluster now has valid answers
+  - `test_missing_tool_call_marked_tool_call_missing`: verifies mock Anthropic returns response with end_turn but no tool_use block, request is marked with tool_call_missing error, retry batch provides valid responses for all clusters
+  - `test_both_recovered_in_retry`: verifies both schema_violation and tool_call_missing errors are recovered in retry batch, final state completed with all clusters having valid answers
+  - `test_final_csv_all_populated`: end-to-end test with malformed responses in first batch, clean responses in retry, final CSV fully populated with all rows having non-empty answer columns
+- Tests use very different Spanish job titles (Jefe de Compras, Ingeniero de Software, etc.) to ensure separate clusters
+- Tests simulate various error scenarios: invalid JSON (missing required field), missing tool_use block, and mixed errors
+- First batch is marked as failed with appropriate error code (schema_violation or tool_call_missing), retry batch provides valid responses
+- Tests verify: job transitions to completed, all clusters have non-empty male_es/female_es/category, all error fields are empty/None, CSV output is fully populated
+- Fixed issues: used distinct job titles to prevent clustering (original test used "Job Title {i}" format which clustered together at threshold 90), fixed retry_batch variable scope (moved fetch before update_batch_status calls)
+- Test: `cd backend && uv run pytest tests/reliability/test_06_malformed_json.py -v` — **PASS** (4 tests)
+- Also verified: `cd backend && uv run ruff check tests/reliability/test_06_malformed_json.py` — **PASS**
+
+---
 
 ### 2026-04-15 — P12-05: Test 5: Stragglers recovered via retry
 - Created `backend/tests/reliability/test_05_stragglers_recovered.py` with 3 assertions:
