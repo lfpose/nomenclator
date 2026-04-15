@@ -2,12 +2,29 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 100
-**Current Task:** P12-09 (completed)
+**Tasks Completed:** 101
+**Current Task:** P12-10 (completed)
 
 ---
 
 ## Session Log
+
+### 2026-04-15 — P12-10: Test 10: Partial run row count matches subset
+- Created `backend/tests/reliability/test_10_partial_run.py` with 3 assertions:
+  - `test_partial_run_output_has_exactly_n_rows`: verifies that partial run with first_n=50 from 500-row input produces exactly 50 data rows in output CSV
+  - `test_partial_run_rows_are_first_n_from_input`: verifies that output CSV contains the first 50 rows from the original input
+  - `test_partial_run_all_rows_populated`: verifies that all answer columns (male_es, female_es, category) are populated and error column is empty for all rows
+- Created helper function `_create_completed_job_with_subset()` that creates a completed job with row subset parameters (row_subset_mode='first_n', row_subset_n=50)
+- Tests generate 500 synthetic job titles ("Job Title 0" to "Job Title 499") and verify that only the first 50 are processed
+- The `create_preview_job` function already accepts `row_subset_mode` and `row_subset_n` parameters (from P07-09), so this task focuses on testing the subset functionality end-to-end
+- Tests verify that PreviewResult has correct total_input_rows (500) and selected_rows (50) counts
+- After processing, export_job_to_csv is called and the output is parsed to verify exactly 50 data rows
+- Each data row is verified to have all answer columns populated and empty error column
+- Removed unused `sqlite3` import flagged by ruff
+- Test: `cd backend && uv run pytest tests/reliability/test_10_partial_run.py -v` — **PASS** (3 tests)
+- Also verified: `cd backend && uv run ruff check tests/reliability/test_10_partial_run.py` — **PASS**
+
+---
 
 ### 2026-04-15 — P12-09: Test 9: Pre-write assertion fires on drift
 - Created `backend/tests/reliability/test_09_drift_assertion.py` with 3 assertions:
