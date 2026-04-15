@@ -408,3 +408,14 @@
 - Max tokens scales as `titles_per_request * 80 + 200` to accommodate variable response sizes
 - Test: `cd backend && uv run pytest tests/anthropic/test_request_builder.py -v` — **PASS** (8 tests)
 - Also verified: ruff check passes
+
+### 2026-04-15 — P05-05: Pydantic response models
+- Created `backend/app/anthropic/models.py` with `TitleResult` and `ToolOutput` Pydantic models (extra='forbid')
+- `TitleResult` has id (pattern ^t[0-9]+$), male_es, female_es, category fields, all with min_length=1 validation
+- `ToolOutput` has a single `results` field containing a list of `TitleResult` objects
+- Created `backend/tests/anthropic/test_models.py` with 6 assertions covering validation and rejection cases
+- Tests verify: valid output parsing, missing field raises, empty field raises, bad id pattern raises, extra field raises (forbid enforcement), empty results array allowed
+- Removed unused `TitleResult` import from test file after ruff check
+- Test: `cd backend && uv run pytest tests/anthropic/test_models.py -v` — **PASS** (6 tests)
+- Also verified: ruff check passes on both files
+
