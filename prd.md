@@ -174,7 +174,7 @@ Key features: prompt review (optional AI validation), row subset (test with firs
       "Verify: cd backend && uv run pytest tests/test_db_dependency.py -v"
     ],
     "test": "cd backend && uv run pytest tests/test_db_dependency.py -v",
-    "passes": false
+    "passes": true
   },
   {
     "id": "P02-04",

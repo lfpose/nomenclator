@@ -1,5 +1,6 @@
 import sqlite3
 from pathlib import Path
+from typing import Generator
 
 from .settings import settings
 
@@ -34,3 +35,12 @@ def _apply_migrations(conn: sqlite3.Connection) -> None:
         sql = path.read_text()
         conn.executescript(sql)
         conn.execute("INSERT INTO schema_version VALUES (?, unixepoch())", (version,))
+
+
+def db_dep() -> Generator[sqlite3.Connection, None, None]:
+    """FastAPI dependency that yields a per-request SQLite connection and closes it on teardown."""
+    conn = get_connection()
+    try:
+        yield conn
+    finally:
+        conn.close()

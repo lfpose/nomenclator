@@ -2,8 +2,8 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 9
-**Current Task:** P02-02
+**Tasks Completed:** 10
+**Current Task:** P02-03
 
 ---
 
@@ -102,3 +102,9 @@
 - Seeded task_templates with job_titles_es (system_prompt='PLACEHOLDER', few_shots='[]')
 - Added 3 tests to test_db.py: test_initial_migration_creates_all_tables, test_initial_migration_seeds_job_titles_es, test_initial_migration_creates_expected_indexes
 - Test: `cd backend && uv run pytest tests/test_db.py -v` — **PASS** (7 tests, including all 3 new tests)
+
+### 2026-04-15 — P02-03: DB connection dependency for FastAPI
+- Appended `db_dep()` generator to `backend/app/db.py` (yields conn, closes on teardown)
+- Created `backend/tests/test_db_dependency.py` with 2 assertions: test_db_dep_yields_working_connection and test_db_dep_closes_on_exception
+- Used ConnectionWrapper class to track close calls on the connection, mock.patch to replace get_connection
+- Test: `cd backend && uv run pytest tests/test_db_dependency.py -v` — **PASS** (2 tests)
