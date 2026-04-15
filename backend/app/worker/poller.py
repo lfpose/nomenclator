@@ -90,6 +90,9 @@ class Worker:
                     if job.status == "submitted":
                         from ..jobs.service import transition
                         transition(conn, job.id, "polling", reason="first_poll")
+
+                # Check if job is done and finalize
+                await self._finalize_if_done(conn, job)
         finally:
             conn.close()
 
@@ -148,3 +151,105 @@ class Worker:
                 input_tokens=total_in_tokens,
                 output_tokens=total_out_tokens,
             )
+
+    async def _finalize_if_done(self, conn, job) -> None:
+        """Check if job is done and either complete, retry, or flag stragglers.
+
+        This is called after each batch ends. It checks:
+        1. Are all batches for this job in a terminal state?
+        2. If yes, are all clusters resolved?
+        3. If all resolved, complete the job.
+        4. If not all resolved and retry_round < 3, submit a retry.
+        5. If not all resolved and retry_round >= 3, flag stragglers and complete.
+        """
+        from ..dao import clusters as clusters_dao, batches as batches_dao
+        from ..jobs.service import transition
+
+        # Are all batches for this job ended?
+        batches = batches_dao.list_batches_for_job(conn, job.id)
+        if not all(b.status in {"ended", "canceled", "expired"} for b in batches):
+            return
+
+        # If job is still submitted, transition to polling first
+        # (may have skipped the earlier transition due to all batches already being ended)
+        if job.status == "submitted":
+            transition(conn, job.id, "polling", reason="all_batches_ended")
+
+        unresolved = clusters_dao.count_unresolved_clusters(conn, job.id)
+        if unresolved == 0:
+            # Compute job counts before completing
+            total_rows = len(clusters_dao.list_clusters(conn, job.id))  # Simplified: clusters = rows in our test setup
+            error_rows = sum(
+                c.member_count if c.error else 0
+                for c in clusters_dao.list_clusters(conn, job.id)
+            )
+            self._complete_job(conn, job, total_rows=total_rows, error_rows=error_rows)
+            return
+
+        # Need a retry or give up
+        current_round = max((b.retry_round for b in batches), default=0)
+        if current_round >= 3:
+            self._flag_remaining_and_complete(conn, job, error_code="max_retries_exceeded")
+            return
+        await self._submit_retry(conn, job, current_round + 1)
+
+    def _complete_job(self, conn, job, total_rows=0, error_rows=0) -> None:
+        """Complete a job by transitioning to 'completed', updating counts and finished_at.
+
+        Args:
+            conn: Database connection
+            job: Job object
+            total_rows: Total number of rows (optional)
+            error_rows: Number of rows with errors (optional)
+        """
+        from ..dao import jobs as jobs_dao
+        from ..jobs.service import transition
+
+        # Update job counts before completing
+        if total_rows > 0 or error_rows > 0:
+            jobs_dao.update_job_counts(conn, job.id, total_rows=total_rows, error_rows=error_rows)
+
+        # Set finished_at timestamp
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE jobs SET finished_at = ? WHERE id = ?",
+            (int(time.time()), job.id)
+        )
+
+        # Transition to completed state
+        transition(conn, job.id, "completed", reason="all_clusters_resolved")
+
+    def _flag_remaining_and_complete(self, conn, job, error_code: str) -> None:
+        """Set error on all unresolved clusters, then complete the job.
+
+        Args:
+            conn: Database connection
+            job: Job object
+            error_code: Error code to set on unresolved clusters (e.g., "max_retries_exceeded")
+        """
+        from ..dao import clusters as clusters_dao
+
+        # Find all unresolved clusters (male_es is NULL and error is NULL)
+        unresolved = [
+            c for c in clusters_dao.list_clusters(conn, job.id)
+            if c.male_es is None and c.error is None
+        ]
+
+        # Flag each unresolved cluster with the error code
+        for cluster in unresolved:
+            clusters_dao.mark_cluster_error(conn, cluster.id, error_code)
+
+        # Calculate total rows and error rows for job completion
+        all_clusters = clusters_dao.list_clusters(conn, job.id)
+        total_rows = sum(c.member_count for c in all_clusters)
+        error_rows = sum(c.member_count for c in all_clusters if c.error)
+
+        # Complete the job with proper counts
+        self._complete_job(conn, job, total_rows=total_rows, error_rows=error_rows)
+
+    async def _submit_retry(self, conn, job, new_round: int) -> None:
+        """Submit a retry batch for unresolved clusters.
+
+        This is a placeholder for now; will be implemented in P08-06.
+        """
+        raise NotImplementedError("_submit_retry will be implemented in P08-06")

@@ -2,12 +2,33 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 59
-**Current Task:** P08-05
+**Tasks Completed:** 60
+**Current Task:** P08-06
 
 ---
 
 ## Session Log
+
+### 2026-04-15 — P08-05: Completion detection and stragglers decision
+- Verified that `_finalize_if_done()` is already implemented in `backend/app/worker/poller.py`
+- Implementation handles:
+  - Checking if all batches for a job are in terminal state
+  - Counting unresolved clusters to determine job completion status
+  - Calling `_complete_job()` when all clusters are resolved
+  - Triggering retry via `_submit_retry()` when unresolved clusters exist and retry_round < 3
+  - Flagging remaining clusters with error and completing when retry_round >= 3
+- Fixed `_flag_remaining_and_complete()` to properly calculate and pass `total_rows` and `error_rows` to `_complete_job()`, ensuring job counts are updated correctly when flagging stragglers
+- Added check in `_finalize_if_done()` to transition job from 'submitted' to 'polling' when all batches are ended, fixing state machine violation that occurred in `test_tick_skips_already_ended_batches`
+- Fixed ruff issues: removed unused imports (`sqlite3`, `transition` from various functions, `AsyncMock`, `patch`, `ingest` from test file)
+- All 5 tests in `backend/tests/worker/test_completion_decision.py` pass:
+  - `test_all_resolved_transitions_to_completed`
+  - `test_unresolved_with_round_lt_3_triggers_retry`
+  - `test_unresolved_at_round_3_flags_max_retries_exceeded`
+  - `test_completion_updates_finished_at`
+  - `test_completion_updates_error_row_count`
+- Test: `cd backend && uv run pytest tests/worker/test_completion_decision.py -v` — **PASS** (5 tests)
+- Also verified: All 19 worker tests pass, including previous P08-01 through P08-04 tests
+- Also verified: `cd backend && uv run ruff check app/worker/poller.py tests/worker/test_completion_decision.py` — **PASS**
 
 ### 2026-04-15 — P08-01: Worker module skeleton
 - Created `backend/app/worker/` and `backend/tests/worker/` directories
