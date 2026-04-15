@@ -2,12 +2,37 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 103
-**Current Task:** P14-02 (completed)
+**Tasks Completed:** 104
+**Current Task:** P14-03 (completed)
 
 ---
 
 ## Session Log
+
+### 2026-04-15 — P14-03: Upload + paste input component
+- Created `frontend/src/components/InputArea.tsx` combining DropZone with collapsible paste textarea:
+  - Uses DropZone component for CSV file upload (from P13-06)
+  - Adds collapsible section for pasting job titles as text
+  - Emits `{ file?: File; text?: string }` based on input method
+  - Clears pasted text when file is selected (exclusive input modes)
+  - Uses shadcn Collapsible for expand/collapse functionality
+  - Custom Button with onClick handler for toggle (instead of CollapsibleTrigger asChild due to @base-ui/react limitations)
+  - Textarea with placeholder "Paste job titles here (one per line)", font-mono, 10 rows
+  - Label "Or paste text" for the collapsible section
+- Created `frontend/tests/input-area.test.tsx` with 5 assertions:
+  - `drop zone accepts dropped CSV file`: verifies file drop event is processed and onInput is called with the file
+  - `drop zone click opens file input`: verifies clicking the drop zone creates a file input element
+  - `paste textarea expands and accepts text`: verifies collapsible section expands on click, textarea is visible, and typing in textarea calls onInput with text
+  - `emits input on file drop`: verifies onInput is called exactly once with correct file structure
+  - `emits input on text change`: verifies onInput is called for text changes with correct structure
+- Fixed test queries to match actual DOM structure (DropZone is a div, not a button)
+- Fixed nested button issue by using Button with onClick instead of CollapsibleTrigger asChild (@base-ui/react doesn't support asChild)
+- Removed unused CollapsibleTrigger import
+- Test: `cd frontend && pnpm test --run tests/input-area.test.tsx` — **PASS** (5 tests)
+- Also verified: `cd frontend && pnpm tsc --noEmit` — **PASS**
+- Also verified: `cd frontend && pnpm build` — **PASS**
+
+---
 
 ### 2026-04-15 — P14-02: Form state hook
 - Created `frontend/src/hooks/useToolForm.ts` with ToolState discriminated union and useReducer implementation:
