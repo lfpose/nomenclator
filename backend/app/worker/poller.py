@@ -24,6 +24,7 @@ class Worker:
         self._task: asyncio.Task | None = None
         self._stop = asyncio.Event()
         self.last_tick_at: float = 0.0
+        self._is_first_tick: bool = True
 
     async def start(self) -> None:
         """Start the worker background task."""
@@ -38,24 +39,46 @@ class Worker:
             self._task = None
 
     async def _run(self) -> None:
-        """Main worker loop: tick periodically until stop is signaled."""
+        """Main worker loop: tick immediately on startup, then periodically until stop is signaled."""
         log.info("worker.started")
+
+        # Immediate first tick on startup
+        try:
+            await self.tick()
+        except Exception as e:
+            log.error("worker.error", exc_info=e)
+        self.last_tick_at = time.time()
+
+        # Periodic ticks
         while not self._stop.is_set():
-            try:
-                await self.tick()
-            except Exception as e:
-                log.error("worker.error", exc_info=e)
-            self.last_tick_at = time.time()
             try:
                 await asyncio.wait_for(self._stop.wait(), timeout=self._tick_interval)
             except asyncio.TimeoutError:
-                pass
+                try:
+                    await self.tick()
+                except Exception as e:
+                    log.error("worker.error", exc_info=e)
+                self.last_tick_at = time.time()
 
     async def tick(self) -> None:
         """Poll active jobs and process results."""
         conn = self._db_factory()
         try:
             from ..dao import jobs as jobs_dao, batches as batches_dao
+
+            # Handle pathological case: jobs stuck in 'queued' state on startup
+            # (server crashed between insert and submit)
+            if self._is_first_tick:
+                self._is_first_tick = False
+                queued_jobs = [
+                    j for j in jobs_dao.list_jobs(conn)
+                    if j.status == "queued"
+                ]
+                if queued_jobs:
+                    from ..jobs.service import transition
+                    for job in queued_jobs:
+                        transition(conn, job.id, "failed", reason="restart_during_queue")
+                        log.warning(f"worker.transition_queued_to_failed: job_id={job.id}")
 
             # Filter to non-terminal jobs
             active = [

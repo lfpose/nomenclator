@@ -2,8 +2,25 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 61
-**Current Task:** P08-07
+**Tasks Completed:** 62
+**Current Task:** P08-08
+
+---
+
+## Session Log
+
+### 2026-04-15 — P08-07: Resume on startup
+- Extended `backend/app/worker/poller.py` with resume-on-startup functionality:
+  - Added `_is_first_tick: bool` attribute to `Worker.__init__()`
+  - Modified `_run()` to call `tick()` immediately on startup (before the loop)
+  - Extended `tick()` to handle jobs stuck in 'queued' state on first tick by transitioning them to 'failed' with reason 'restart_during_queue'
+- Created `backend/tests/worker/test_resume.py` with 3 assertions:
+  - `test_first_tick_runs_immediately_on_start`: verifies tick runs immediately on worker start (not delayed by tick_interval)
+  - `test_queued_job_on_startup_transitioned_to_failed`: verifies queued jobs are transitioned to 'failed' on startup
+  - `test_submitted_job_polled_immediately`: verifies submitted jobs are polled immediately on startup
+- Test: `cd backend && uv run pytest tests/worker/test_resume.py -v` — **PASS** (3 tests)
+- Also verified: All 28 worker tests pass
+- Also verified: `cd backend && uv run ruff check app/worker/poller.py tests/worker/test_resume.py` — **PASS**
 
 ---
 
