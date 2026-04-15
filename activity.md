@@ -2,8 +2,8 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 37
-**Current Task:** P05-09
+**Tasks Completed:** 38
+**Current Task:** P05-10
 
 ---
 
@@ -446,6 +446,22 @@
 - Removed unused `TitleResult` import from test file after ruff check
 - Test: `cd backend && uv run pytest tests/anthropic/test_models.py -v` — **PASS** (6 tests)
 - Also verified: ruff check passes on both files
+
+### 2026-04-15 — P05-10: Prompt review client
+- Created `backend/app/anthropic/review.py` with prompt review functionality
+- Defined `REVIEW_SYSTEM_PROMPT` constant with instructions for Haiku to review prompts for safety, clarity, completeness, and few-shot quality
+- Defined `REVIEW_TOOL` constant with tool schema for `review_prompt` tool returning safe boolean, quality_score enum, issues array, suggestions array, and summary string
+- Created `PromptReview` frozen dataclass with fields: safe, quality_score, issues, suggestions, summary
+- Implemented `review_prompt()` function using Anthropic SDK to send prompt and few_shots to claude-haiku-4-5 with forced tool_choice, extracts tool_use block and returns PromptReview
+- Created `backend/tests/anthropic/test_review.py` with 5 assertions using mocked Anthropic client:
+  - test_review_prompt_returns_prompt_review_dataclass: verifies return type and field values
+  - test_review_prompt_calls_haiku_with_tool_choice: validates correct model, max_tokens, temperature, system, tools, tool_choice params
+  - test_review_prompt_handles_good_quality_score: tests parsing of good quality_score with suggestions
+  - test_review_prompt_handles_poor_quality_score: tests parsing of poor quality_score with issues and suggestions
+  - test_review_prompt_raises_on_api_error: verifies API errors are propagated
+- Fixed import order issue (moved `from dataclasses import dataclass` to top of file)
+- Test: `cd backend && uv run pytest tests/anthropic/test_review.py -v` — **PASS** (5 tests)
+- Also verified: `cd backend && uv run ruff check app/anthropic/review.py tests/anthropic/test_review.py` — **PASS**
 
 ### 2026-04-15 — P05-06: Response parser
 - Created `backend/app/anthropic/response_parser.py` with `ParseError` exception class and `parse_tool_call()` function
