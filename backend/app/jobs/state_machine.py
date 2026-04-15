@@ -11,7 +11,7 @@ ALLOWED_TRANSITIONS: dict[str, set[str]] = {
     "submitted": {"polling", "cancelled", "failed"},
     "polling": {"polling", "retrying", "completed", "failed", "cancelled"},
     "retrying": {"submitted", "completed", "failed", "cancelled"},
-    "completed": set(),
+    "completed": {"failed"},  # Allow transition to failed on data integrity issues
     "failed": set(),
     "cancelled": set(),
 }

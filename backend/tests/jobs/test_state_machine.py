@@ -21,11 +21,13 @@ def test_allowed_polling_to_completed() -> None:
 
 
 def test_disallowed_completed_to_anything() -> None:
-    """Verify completed state has no outgoing transitions."""
-    assert not is_allowed("completed", "failed")
+    """Verify completed state has limited outgoing transitions (only to failed for data integrity)."""
+    # completed -> failed is allowed for data integrity issues
+    assert is_allowed("completed", "failed")
+    # But other transitions from completed are not allowed
     assert not is_allowed("completed", "cancelled")
     assert not is_allowed("completed", "polling")
-    assert len(ALLOWED_TRANSITIONS["completed"]) == 0
+    assert len(ALLOWED_TRANSITIONS["completed"]) == 1
 
 
 def test_disallowed_failed_to_anything() -> None:
@@ -53,11 +55,12 @@ def test_disallowed_skip_states() -> None:
 
 def test_assert_allowed_raises_on_invalid() -> None:
     """Verify assert_allowed raises ValueError on invalid transition."""
-    with pytest.raises(ValueError, match="Invalid transition: completed -> failed"):
-        assert_allowed("completed", "failed")
+    with pytest.raises(ValueError, match="Invalid transition: completed -> cancelled"):
+        assert_allowed("completed", "cancelled")
 
     with pytest.raises(ValueError, match="Invalid transition: draft -> submitted"):
         assert_allowed("draft", "submitted")
 
-    # Should not raise for valid transition
+    # Should not raise for valid transitions
     assert_allowed("draft", "preview")
+    assert_allowed("completed", "failed")

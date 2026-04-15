@@ -1,10 +1,17 @@
 from datetime import datetime, timezone
+from io import BytesIO
 
 from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from ..auth.middleware import require_session
 from ..auth.rate_limit import COMMIT_LIMITER
+from ..csv_io.exporter import (
+    RowCountDriftError,
+    download_filename,
+    export_job_to_csv,
+)
 from ..csv_io.parser import CSVError
 from ..db import db_dep
 from ..jobs.service import (
@@ -14,6 +21,7 @@ from ..jobs.service import (
     commit_job,
     create_preview_job,
     recluster_job,
+    transition,
 )
 from .errors import APIError
 
@@ -209,3 +217,42 @@ def get_job(job_id: str, conn=Depends(db_dep)):
             for b in batches
         ],
     }
+
+
+@router.get("/{job_id}/download")
+def download_job(job_id: str, conn=Depends(db_dep)):
+    """Download the CSV export of a completed job.
+
+    Returns the processed job titles as a CSV file with standardized forms.
+    Only completed jobs can be downloaded.
+
+    If row count drift is detected, the job is transitioned to failed and
+    an internal error is returned (never a partial CSV).
+    """
+    from ..dao.jobs import get_job as dao_get
+
+    job = dao_get(conn, job_id)
+    if job is None:
+        raise APIError("job_not_found", "No such job.", 404)
+    if job.status != "completed":
+        raise APIError("invalid_state", "Job is not in completed state.", 409)
+
+    try:
+        csv_bytes = export_job_to_csv(conn, job_id)
+    except RowCountDriftError as e:
+        # Transition job to failed state and return 500 error
+        transition(conn, job_id, "failed", reason="row_count_drift")
+        raise APIError("internal_error", "Row count drift detected.", 500)
+
+    filename = download_filename(job_id)
+
+    def iter_bytes():
+        yield csv_bytes
+
+    return StreamingResponse(
+        iter_bytes(),
+        media_type="text/csv; charset=utf-8",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+        },
+    )

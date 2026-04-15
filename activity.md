@@ -2,8 +2,8 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 80
-**Current Task:** P11-04 (completed)
+**Tasks Completed:** 83
+**Current Task:** P10-10 (completed)
 
 ---
 
@@ -127,6 +127,47 @@
   - `test_download_filename_no_hyphens`: verifies job IDs without hyphens are handled correctly
 - Test: `cd backend && uv run pytest tests/csv/test_filename.py -v` — **PASS** (5 tests)
 - Also verified: `cd backend && uv run ruff check app/csv_io/exporter.py tests/csv/test_filename.py` — **PASS**
+
+### 2026-04-15 — P10-10: GET /jobs/:id/download
+- Extended `backend/app/api/jobs.py` with GET /jobs/{job_id}/download endpoint:
+  - Returns 200 with CSV stream for completed jobs
+  - Returns 409 with invalid_state error for non-completed jobs
+  - Returns 404 with job_not_found error for missing jobs
+  - Includes Content-Type: text/csv; charset=utf-8
+  - Includes Content-Disposition header with filename from download_filename()
+  - Wraps export_job_to_csv() in try/except to catch RowCountDriftError
+- Updated imports to include: io.BytesIO, StreamingResponse, export functions (RowCountDriftError, download_filename, export_job_to_csv), and transition function
+- Created `backend/tests/api/test_api_download.py` with 5 assertions:
+  - `test_download_completed_job_returns_csv`: verifies download returns CSV with correct content type, disposition, BOM, and content
+  - `test_download_starts_with_utf8_bom`: verifies output starts with UTF-8 BOM
+  - `test_download_filename_header_set`: verifies filename header is set correctly
+  - `test_download_non_completed_returns_409`: verifies 409 for non-completed jobs
+  - `test_download_missing_404`: verifies 404 for missing jobs
+- Tests use same pattern as other API tests: temp database, FakeAnthropicBatchClient, dry-run mode for commit
+- Fixed issues:
+  - Changed `app = create_app()` to `fastapi_app = create_app()` to avoid shadowing imported `app` module
+  - Set `app.state.anthropic_client` to FakeAnthropicBatchClient for testing
+  - Passed `headers={"X-Forwarded-For": test_ip}` in auth request
+  - Passed cookies explicitly in all requests using `cookies={"sid": sid}`
+- Test: `cd backend && uv run pytest tests/api/test_api_download.py -v` — **PASS** (5 tests)
+- Also verified: `cd backend && uv run ruff check app/api/jobs.py tests/api/test_api_download.py` — **PASS**
+
+### 2026-04-15 — P11-05: Failed-job transition on drift
+- Extended state machine to allow `completed` -> `failed` transition for data integrity issues
+- Modified `backend/app/jobs/state_machine.py` to add `{"failed"}` to ALLOWED_TRANSITIONS["completed"]
+- Added comment explaining this is for data integrity issues (row count drift detection)
+- Updated `backend/tests/jobs/test_state_machine.py`:
+  - Updated `test_disallowed_completed_to_anything` to reflect that only `failed` transition is allowed
+  - Updated `test_assert_allowed_raises_on_invalid` to use `completed -> cancelled` as invalid example
+  - Added test to verify `completed -> failed` is allowed
+- Created `backend/tests/api/test_download_drift.py` with 3 assertions:
+  - `test_download_drift_transitions_job_to_failed`: verifies job transitions to failed state on row count drift (manually deletes a row to simulate drift)
+  - `test_download_drift_returns_500`: verifies drift returns 500 internal error with correct error code
+  - `test_download_drift_never_returns_csv_bytes`: verifies drift never returns CSV bytes (always returns error JSON)
+- Tests simulate drift by directly deleting job_rows via SQLite, then attempting download
+- Test: `cd backend && uv run pytest tests/api/test_download_drift.py -v` — **PASS** (3 tests)
+- Also verified: All state machine tests still pass after adding completed->failed transition
+- Also verified: `cd backend && uv run ruff check app/jobs/state_machine.py tests/jobs/test_state_machine.py tests/api/test_download_drift.py` — **PASS**
 
 ---
 

@@ -1130,7 +1130,7 @@ Key features: prompt review (optional AI validation), row subset (test with firs
       "Verify: cd backend && uv run pytest tests/api/test_api_download.py -v"
     ],
     "test": "cd backend && uv run pytest tests/api/test_api_download.py -v",
-    "passes": false
+    "passes": true
   },
   {
     "id": "P10-11",
@@ -1285,7 +1285,7 @@ Key features: prompt review (optional AI validation), row subset (test with firs
       "Verify: cd backend && uv run pytest tests/api/test_download_drift.py -v"
     ],
     "test": "cd backend && uv run pytest tests/api/test_download_drift.py -v",
-    "passes": false
+    "passes": true
   },
   {
     "id": "P12-01",
