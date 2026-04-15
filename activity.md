@@ -2,8 +2,27 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 45
-**Current Task:** P07-02
+**Tasks Completed:** 46
+**Current Task:** P07-03
+
+---
+
+## Session Log
+
+### 2026-04-15 — P07-03: Single-concurrency check
+- Extended `backend/app/jobs/service.py` with `ConcurrencyError` exception class and `assert_no_running_job()` function
+- `ConcurrencyError` is raised when a job cannot start because another job is already running
+- `assert_no_running_job()` checks if any non-terminal job exists (queued, submitted, polling, retrying) using `jobs_dao.count_active_jobs()`
+- Raises `ConcurrencyError("job_already_running")` if count > 0, otherwise returns silently
+- Created `backend/tests/jobs/test_concurrency.py` with 4 assertions:
+  - `test_no_running_job_when_empty`: verifies no error when no active jobs exist
+  - `test_raises_when_polling_job_exists`: verifies ConcurrencyError raised when polling job exists
+  - `test_raises_when_retrying_job_exists`: verifies ConcurrencyError raised when retrying job exists
+  - `test_does_not_raise_when_only_completed_jobs`: verifies no error when only completed jobs exist
+- Test: `cd backend && uv run pytest tests/jobs/test_concurrency.py -v` — **PASS** (4 tests)
+- Also verified: `cd backend && uv run ruff check app/jobs/service.py tests/jobs/test_concurrency.py` — **PASS**
+
+### 2026-04-15 — P07-02: Job transition with logging
 
 ---
 
