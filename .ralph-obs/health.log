@@ -102,3 +102,4 @@
 [2026-04-15T18:25:32+00:00] [INFO] Task P12-03 succeeded
 [2026-04-15T18:35:59+00:00] [ERROR] Agent error on task P12-04
 [2026-04-15T18:40:19+00:00] [ERROR] Agent error on task P12-06
+[2026-04-15T18:52:10+00:00] [WARN] Task P12-07 test failed (stuck: 0)

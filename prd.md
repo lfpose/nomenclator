@@ -1381,7 +1381,7 @@ Key features: prompt review (optional AI validation), row subset (test with firs
       "Verify: cd backend && uv run pytest tests/reliability/test_08_cap_during_retry.py -v"
     ],
     "test": "cd backend && uv run pytest tests/reliability/test_08_cap_during_retry.py -v",
-    "passes": false
+    "passes": true
   },
   {
     "id": "P12-09",

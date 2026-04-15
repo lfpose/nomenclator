@@ -2,12 +2,29 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 92
-**Current Task:** P12-07 (completed)
+**Tasks Completed:** 93
+**Current Task:** P12-08 (completed)
 
 ---
 
 ## Session Log
+
+### 2026-04-15 — P12-08: Test 8: Spend cap during retry flags stragglers
+- Created `backend/tests/reliability/test_08_cap_during_retry.py` with 4 assertions:
+  - `test_retry_refused_by_cap_flags_stragglers`: verifies that pre-seeding $19.90 spend (just under $20 cap) and creating stragglers causes retry to be refused, stragglers flagged with spend_cap_exceeded error
+  - `test_job_status_is_completed_not_failed`: verifies that when retry is refused by cap, job status should be 'completed' not 'failed'
+  - `test_flagged_rows_carry_spend_cap_exceeded_code`: verifies that rows in straggler clusters have error='spend_cap_exceeded' in the CSV output
+  - `test_output_row_count_unchanged`: verifies that total output row count matches input (20 rows) even when stragglers are flagged
+- Tests simulate spend cap scenario by:
+  1. Creating a dummy job and inserting $19.90 of historical spend into spend_log
+  2. Creating a real job with 20 titles, committing it, and completing first batch with stragglers (N-1 results)
+  3. Using Worker._flag_remaining_and_complete() directly to simulate the cap check failure path in _submit_retry
+- Tests verify: job transitions to completed, straggler cluster has error='spend_cap_exceeded', resolved clusters have answers and no errors, CSV output has correct error codes, total row count preserved
+- Fixed issues: corrected create_job() calls to not include 'id' parameter (it's auto-generated), used update_job_status and update_job_counts to properly transition dummy job to completed state, removed unused imports flagged by ruff (json, tempfile, shutil, AsyncMock, asyncio), removed unused variables (temp_db_path, straggler_cluster_id in some tests)
+- Test: `cd backend && uv run pytest tests/reliability/test_08_cap_during_retry.py -v` — **PASS** (4 tests)
+- Also verified: `cd backend && uv run ruff check tests/reliability/test_08_cap_during_retry.py` — **PASS**
+
+---
 
 ### 2026-04-15 — P12-06: Test 6: Malformed JSON triggers schema_violation
 - Created `backend/tests/reliability/test_06_malformed_json.py` with 4 assertions:
