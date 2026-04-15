@@ -2,8 +2,8 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 8
-**Current Task:** P02-01
+**Tasks Completed:** 9
+**Current Task:** P02-02
 
 ---
 
@@ -95,3 +95,10 @@
 - `get_connection()` uses `settings.database_path`, sets `row_factory`, applies migrations on first use
 - `_apply_migrations()` creates schema_version table, tracks applied versions, applies pending migrations from sorted SQL files
 - Test: `cd backend && uv run pytest tests/test_db.py -v` — **PASS** (4 tests)
+
+### 2026-04-15 — P02-02: Initial migration SQL
+- Created `backend/app/migrations/001_initial.sql` with full DDL from spec/05-data-model.md
+- Included jobs table columns: row_subset_mode, row_subset_n, is_dry_run
+- Seeded task_templates with job_titles_es (system_prompt='PLACEHOLDER', few_shots='[]')
+- Added 3 tests to test_db.py: test_initial_migration_creates_all_tables, test_initial_migration_seeds_job_titles_es, test_initial_migration_creates_expected_indexes
+- Test: `cd backend && uv run pytest tests/test_db.py -v` — **PASS** (7 tests, including all 3 new tests)
