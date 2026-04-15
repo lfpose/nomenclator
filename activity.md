@@ -2,8 +2,8 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 19
-**Current Task:** P03-01
+**Tasks Completed:** 21
+**Current Task:** P03-07
 
 ---
 
@@ -231,3 +231,9 @@
 - Uses dict to track seen values (preserves order in Python 3.7+), first occurrence wins
 - Created `backend/tests/csv/test_dedup.py` with 4 assertions: removes exact duplicates, preserves first occurrence order, empty returns empty, already unique returns same length
 - Test: `cd backend && uv run pytest tests/csv/test_dedup.py -v` — **PASS** (4 tests)
+
+### 2026-04-15 — P03-06: CSV integration smoke test
+- Generated synthetic 13,000-row CSV with 7,800 unique normalized values (~40% duplicates) in `backend/tests/fixtures/csv/realistic_13k.csv.gz`
+- CSV contains Spanish job titles with various accent/case/whitespace variants
+- Created `backend/tests/csv/test_csv_smoke.py` with 3 assertions: ingest under 2s, dedup reduces by 30%+, all originals preserved
+- Test: `cd backend && uv run pytest tests/csv/test_csv_smoke.py -v` — **PASS** (3 tests, 0.61s total)
