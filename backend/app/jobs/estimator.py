@@ -1,6 +1,9 @@
 """Cost estimation helpers for jobs."""
 
-from ..pricing import estimate_cost
+from dataclasses import dataclass
+
+from ..dao.spend_log import reset_date_approx, sum_last_30_days
+from ..pricing import MONTHLY_SPEND_CAP_USD, estimate_cost
 
 
 def estimate_job_cost(cluster_count: int, titles_per_request: int) -> float:
@@ -17,3 +20,66 @@ def estimate_job_cost(cluster_count: int, titles_per_request: int) -> float:
         Estimated cost in USD
     """
     return estimate_cost(cluster_count, titles_per_request)
+
+
+@dataclass(frozen=True)
+class CapCheckResult:
+    """Result of a spend cap check.
+
+    Attributes:
+        ok: Whether the estimated cost is within the monthly cap
+        used_usd: Total USD spent in the last 30 days
+        estimated_usd: Estimated cost for the new job/batch
+        cap_usd: Monthly spend cap in USD
+        reset_date_unix: Unix timestamp when the 30-day window will roll over,
+            or None if no spend entries exist
+    """
+    ok: bool
+    used_usd: float
+    estimated_usd: float
+    cap_usd: float
+    reset_date_unix: int | None
+
+
+def check_cap(
+    conn,
+    estimated_usd: float,
+    *,
+    now: int | None = None,
+    is_dry_run: bool = False,
+) -> CapCheckResult:
+    """Check whether an estimated cost exceeds the monthly spend cap.
+
+    Args:
+        conn: Database connection
+        estimated_usd: Estimated cost for the new job/batch
+        now: Current Unix timestamp (defaults to current time)
+        is_dry_run: If True, skip the cap check and return ok=True
+
+    Returns:
+        CapCheckResult with the check outcome and spending details
+
+    Note:
+        Dry-run jobs skip the cap check entirely — is_dry_run=True returns
+        ok=True regardless of spend level, with $0 cost figures.
+    """
+    if is_dry_run:
+        return CapCheckResult(
+            ok=True,
+            used_usd=0.0,
+            estimated_usd=0.0,
+            cap_usd=MONTHLY_SPEND_CAP_USD,
+            reset_date_unix=None,
+        )
+
+    used = sum_last_30_days(conn, now)
+    ok = (used + estimated_usd) <= MONTHLY_SPEND_CAP_USD
+    reset = reset_date_approx(conn, now)
+
+    return CapCheckResult(
+        ok=ok,
+        used_usd=used,
+        estimated_usd=estimated_usd,
+        cap_usd=MONTHLY_SPEND_CAP_USD,
+        reset_date_unix=reset,
+    )

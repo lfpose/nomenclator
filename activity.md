@@ -2,12 +2,28 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 40
-**Current Task:** P06-01
+**Tasks Completed:** 41
+**Current Task:** P06-02
 
 ---
 
 ## Session Log
+
+### 2026-04-15 — P06-02: Cap check
+- Extended `backend/app/jobs/estimator.py` with `CapCheckResult` dataclass and `check_cap()` function
+- `CapCheckResult` is a frozen dataclass with fields: ok, used_usd, estimated_usd, cap_usd, reset_date_unix
+- `check_cap()` checks whether an estimated cost exceeds the monthly spend cap by querying `sum_last_30_days()` and `reset_date_approx()` from spend_log DAO
+- Dry-run jobs skip the cap check entirely — `is_dry_run=True` returns `ok=True` regardless of spend level, with $0 cost figures
+- Created `backend/tests/jobs/test_cap.py` with 6 assertions:
+  - `test_cap_ok_when_empty_spend_log`: verifies cap check succeeds when no spend entries exist
+  - `test_cap_blocked_when_used_plus_est_over_20`: verifies cap fails when used + estimated exceeds $20
+  - `test_cap_ok_when_used_plus_est_exactly_20`: verifies cap succeeds when used + estimated equals $20 exactly
+  - `test_cap_ignores_old_entries`: verifies spend entries older than 30 days are ignored
+  - `test_cap_returns_reset_date_when_entries_exist`: verifies reset_date_unix is returned when entries exist
+  - `test_cap_check_skipped_for_dry_run`: verifies dry_run bypasses cap check with $0 figures
+- Fixed FOREIGN KEY constraint issues by creating jobs before inserting spend_log entries and using None for batch_id
+- Test: `cd backend && uv run pytest tests/jobs/test_cap.py -v` — **PASS** (6 tests)
+- Also verified: `cd backend && uv run ruff check app/jobs/estimator.py tests/jobs/test_cap.py` — **PASS**
 
 ### 2026-04-15 — P06-01: Cost estimator bound to template
 - Created `backend/app/jobs/estimator.py` with `estimate_job_cost(cluster_count, titles_per_request)` function that delegates to `pricing.estimate_cost`
