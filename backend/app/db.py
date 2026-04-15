@@ -9,7 +9,10 @@ MIGRATIONS_DIR = Path(__file__).parent / "migrations"
 
 def get_connection() -> sqlite3.Connection:
     """Create a SQLite connection with WAL mode, foreign keys, and apply migrations."""
-    conn = sqlite3.connect(settings.database_path, isolation_level=None)
+    # For file-based databases, disable thread check to allow TestClient to work
+    # (TestClient runs requests in a separate thread)
+    check_same_thread = settings.database_path == ":memory:"
+    conn = sqlite3.connect(settings.database_path, isolation_level=None, check_same_thread=check_same_thread)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode = WAL")
     conn.execute("PRAGMA foreign_keys = ON")

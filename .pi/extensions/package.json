@@ -1,0 +1,11 @@
+{
+  "name": "pi-ralph-watch",
+  "version": "1.0.0",
+  "description": "Ralph loop monitoring extension for Pi - shows loop status in TUI",
+  "keywords": ["pi-package", "pi-extension", "ralph", "monitoring"],
+  "pi": {
+    "extensions": ["./ralph-watch.ts"]
+  },
+  "author": "",
+  "license": "MIT"
+}
