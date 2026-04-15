@@ -22,3 +22,4 @@ class RateLimiter:
 AUTH_LIMITER = RateLimiter(limit=5, window_seconds=60.0)
 COMMIT_LIMITER = RateLimiter(limit=10, window_seconds=3600.0)
 GENERAL_LIMITER = RateLimiter(limit=60, window_seconds=60.0)
+REVIEW_LIMITER = RateLimiter(limit=10, window_seconds=60.0)

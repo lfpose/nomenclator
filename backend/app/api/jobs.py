@@ -1,12 +1,11 @@
 from datetime import datetime, timezone
-from io import BytesIO
 
 from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from ..auth.middleware import require_session
-from ..auth.rate_limit import COMMIT_LIMITER
+from ..auth.rate_limit import COMMIT_LIMITER, REVIEW_LIMITER
 from ..csv_io.exporter import (
     RowCountDriftError,
     download_filename,
@@ -15,14 +14,17 @@ from ..csv_io.exporter import (
 from ..csv_io.parser import CSVError
 from ..db import db_dep
 from ..jobs.service import (
+    APIError as JobsAPIError,
     ConcurrencyError,
     SpendCapExceeded,
     cancel_job,
     commit_job,
     create_preview_job,
     recluster_job,
+    review_operator_prompt,
     transition,
 )
+from ..settings import settings
 from .errors import APIError
 
 router = APIRouter(dependencies=[Depends(require_session)])
@@ -37,6 +39,39 @@ class CommitRequest(BaseModel):
     taxonomy: str | None = None
     titles_per_request: int | None = None
     is_dry_run: bool = False
+
+
+class ReviewPromptRequest(BaseModel):
+    prompt: str
+    few_shots: str  # JSON string
+
+
+@router.post("/review-prompt")
+def review_prompt_endpoint(body: ReviewPromptRequest, request: Request, conn=Depends(db_dep)):
+    """Review the operator's prompt using Claude.
+
+    Sends the prompt and few-shot examples to Claude for safety and quality
+    analysis. Returns a structured review with safety flag, quality score,
+    issues, suggestions, and summary.
+    """
+    sid = request.cookies.get("sid", "")
+    if not REVIEW_LIMITER.allow(sid):
+        raise APIError("rate_limited", "Too many review requests.", 429)
+    try:
+        review = review_operator_prompt(
+            settings.anthropic_api_key, body.prompt, body.few_shots
+        )
+    except JobsAPIError as e:
+        raise APIError("prompt_review_failed", e.message, 500)
+    except Exception as e:
+        raise APIError("prompt_review_failed", f"Prompt review failed: {e}", 500)
+    return {
+        "safe": review.safe,
+        "quality_score": review.quality_score,
+        "issues": review.issues,
+        "suggestions": review.suggestions,
+        "summary": review.summary,
+    }
 
 
 @router.post("/preview")
@@ -239,7 +274,7 @@ def download_job(job_id: str, conn=Depends(db_dep)):
 
     try:
         csv_bytes = export_job_to_csv(conn, job_id)
-    except RowCountDriftError as e:
+    except RowCountDriftError:
         # Transition job to failed state and return 500 error
         transition(conn, job_id, "failed", reason="row_count_drift")
         raise APIError("internal_error", "Row count drift detected.", 500)

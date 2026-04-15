@@ -9,6 +9,30 @@
 
 ## Session Log
 
+### 2026-04-15 — P10-16: POST /jobs/review-prompt
+- Added `REVIEW_LIMITER = RateLimiter(limit=10, window_seconds=60.0)` to `backend/app/auth/rate_limit.py`
+- Extended `backend/app/api/jobs.py` with `POST /jobs/review-prompt` endpoint:
+  - Added imports for `REVIEW_LIMITER`, `review_operator_prompt`, `settings`, and `JobsAPIError`
+  - Created `ReviewPromptRequest` Pydantic model with `prompt` and `few_shots` fields
+  - Added endpoint with rate limiting via `REVIEW_LIMITER.allow(sid)`
+  - Calls `review_operator_prompt()` from jobs service
+  - Returns structured review with `safe`, `quality_score`, `issues`, `suggestions`, `summary` fields
+  - Handles `JobsAPIError` exceptions and converts to `APIError` with status 500
+  - Handles generic exceptions and converts to `APIError` with status 500
+- Created `backend/tests/api/test_api_review_prompt.py` with 4 assertions:
+  - `test_review_prompt_returns_structured_review`: verifies endpoint returns all review fields with correct values (mocked PromptReview)
+  - `test_review_prompt_requires_auth`: verifies endpoint returns 401 unauthenticated when no session cookie
+  - `test_review_prompt_rate_limited`: verifies 10 requests succeed and 11th returns 429 with rate_limited error code
+  - `test_review_prompt_handles_api_failure_gracefully`: verifies API failures return 500 with prompt_review_failed error envelope
+- Fixed test patch paths from `app.jobs.service.review_prompt` to `app.anthropic.review.review_prompt` (correct import location)
+- Fixed exception handling to not reference `e.status` (JobsAPIError only has code and message attributes)
+- Fixed test expectation from "Prompt review failed" to "Failed to review prompt" (actual error message)
+- Fixed ruff issues: removed unused `io.BytesIO` import and unused variable `e` in download endpoint
+- Test: `cd backend && uv run pytest tests/api/test_api_review_prompt.py -v` — **PASS** (4 tests)
+- Also verified: `cd backend && uv run ruff check app/auth/rate_limit.py app/api/jobs.py tests/api/test_api_review_prompt.py` — **PASS**
+
+---
+
 ### 2026-04-15 — P10-15: General rate-limit dependency
 - Extended `backend/app/auth/middleware.py` with general rate limit in `require_session` dependency
 - Added imports for `APIError` from `..api.errors` and `GENERAL_LIMITER` from `rate_limit`
