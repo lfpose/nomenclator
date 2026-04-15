@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
+from .api.auth import router as auth_router
 from .api.errors import register_handlers
 from .anthropic.client import RealAnthropicClient
 from .db import get_connection
@@ -29,6 +30,7 @@ def create_app() -> FastAPI:
     )
 
     register_handlers(app)
+    app.include_router(auth_router, tags=["auth"])
 
     @app.get("/health")
     def health():

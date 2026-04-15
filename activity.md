@@ -2,12 +2,35 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 69
-**Current Task:** P10-02
+**Tasks Completed:** 70
+**Current Task:** P10-03
 
 ---
 
 ## Session Log
+
+### 2026-04-15 — P10-02: POST /auth
+- Created `backend/app/api/auth.py` with POST /auth endpoint:
+  - Accepts JSON request body with `password` field
+  - Uses AUTH_LIMITER for rate limiting (5 attempts per minute per IP)
+  - Verifies password against argon2 hash using `verify_password()`
+  - Creates session via `create_session()` and returns raw token as cookie
+  - Sets httpOnly, Secure, SameSite=lax, Max-Age=2592000 (30 days), Path=/ cookie flags
+  - Returns 200 with `{"ok": true}` on success
+  - Returns 401 with error envelope on wrong password
+  - Returns 429 with error envelope when rate limited
+- Modified `backend/app/main.py` to import and include auth router with `app.include_router(auth_router, tags=["auth"])`
+- Updated auth endpoint to use X-Forwarded-For header for IP detection (supports testing with custom IP addresses)
+- Created `backend/tests/api/test_api_auth.py` with 4 assertions:
+  - `test_auth_correct_password_sets_cookie`: verifies correct password sets session cookie with all required flags (HttpOnly, Secure, SameSite=lax, Max-Age, Path)
+  - `test_auth_wrong_password_returns_401`: verifies wrong password returns 401 with unauthenticated error envelope
+  - `test_auth_rate_limits_after_5_attempts`: verifies rate limiting kicks in after 5 wrong attempts (returns 429 with rate_limited error envelope)
+  - `test_auth_cookie_flags_httponly_secure_samesite`: verifies all cookie flags are correctly set via Set-Cookie header
+- Used unique IP addresses (127.0.0.1-127.0.0.4) for each test to isolate rate limiting state between tests
+- Fixed SameSite flag check to be case-insensitive (header contains "SameSite=lax" but check used "samesite=lax")
+- Removed unused imports flagged by ruff (pytest, get_password_hash)
+- Test: `cd backend && uv run pytest tests/api/test_api_auth.py -v` — **PASS** (4 tests)
+- Also verified: `cd backend && uv run ruff check app/api/auth.py tests/api/test_api_auth.py app/main.py` — **PASS**
 
 ### 2026-04-15 — P10-01: App factory + error envelope + global exception handlers
 - Created `backend/app/api/errors.py` with error handling infrastructure:
