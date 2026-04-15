@@ -833,7 +833,7 @@ Key features: prompt review (optional AI validation), row subset (test with firs
       "Verify: cd backend && uv run pytest tests/worker/test_worker_skeleton.py -v"
     ],
     "test": "cd backend && uv run pytest tests/worker/test_worker_skeleton.py -v",
-    "passes": false
+    "passes": true
   },
   {
     "id": "P08-02",

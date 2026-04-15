@@ -2,12 +2,30 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 55
-**Current Task:** P07-11
+**Tasks Completed:** 56
+**Current Task:** P08-01
 
 ---
 
 ## Session Log
+
+### 2026-04-15 — P08-01: Worker module skeleton
+- Created `backend/app/worker/` and `backend/tests/worker/` directories
+- Created `backend/app/worker/__init__.py` and `backend/tests/worker/__init__.py` package markers
+- Implemented `Worker` class in `backend/app/worker/poller.py`:
+  - `__init__()` accepts client, db_factory, and tick_interval (default 30.0s)
+  - `start()` creates and starts the asyncio background task
+  - `stop()` signals stop event, waits for task to finish, and sets _task to None
+  - `_run()` main worker loop: ticks periodically, logs errors, updates heartbeat
+  - `tick()` placeholder method (to be implemented in P08-03)
+- Added `last_tick_at` heartbeat field that updates after each tick
+- Created `backend/tests/worker/test_worker_skeleton.py` with 3 assertions:
+  - `test_worker_start_and_stop_clean`: verifies worker starts and stops cleanly without errors
+  - `test_worker_heartbeat_updates_on_tick`: verifies last_tick_at updates after each tick
+  - `test_worker_continues_after_tick_exception`: verifies worker continues after exception in tick()
+- Fixed issue: set `_task = None` after stop() to properly clean up finished task
+- Test: `cd backend && uv run pytest tests/worker/test_worker_skeleton.py -v` — **PASS** (3 tests)
+- Also verified: `cd backend && uv run ruff check app/worker/poller.py tests/worker/test_worker_skeleton.py` — **PASS**
 
 ### 2026-04-15 — P07-11: Dry-run mode in commit
 - Extended `commit_job` function in `backend/app/jobs/service.py` with `is_dry_run` parameter
