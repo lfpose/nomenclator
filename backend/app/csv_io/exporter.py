@@ -1,6 +1,10 @@
 from dataclasses import dataclass
 import csv
 import io
+import logging
+
+
+log = logging.getLogger("nomenclator.export")
 
 
 @dataclass(frozen=True)
@@ -40,3 +44,27 @@ def write_csv_bytes(rows: list[ExportRow]) -> bytes:
     for r in rows:
         writer.writerow([r.original, r.male_es, r.female_es, r.category, r.error])
     return buf.getvalue().encode("utf-8")
+
+
+class RowCountDriftError(Exception):
+    def __init__(self, job_id: str, in_count: int, out_count: int):
+        self.job_id = job_id
+        self.in_count = in_count
+        self.out_count = out_count
+        super().__init__(f"Row count drift in job {job_id}: in={in_count} out={out_count}")
+
+
+def export_job_to_csv(conn, job_id: str) -> bytes:
+    from ..dao.jobs import get_job
+
+    job = get_job(conn, job_id)
+    if job is None:
+        raise ValueError("job_not_found")
+    rows = fetch_export_rows(conn, job_id)
+    if len(rows) != job.total_rows:
+        log.error(
+            "export.row_count_drift",
+            extra={"job_id": job_id, "in_count": job.total_rows, "out_count": len(rows)},
+        )
+        raise RowCountDriftError(job_id, job.total_rows, len(rows))
+    return write_csv_bytes(rows)

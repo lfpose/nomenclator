@@ -2,8 +2,8 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 78
-**Current Task:** P11-02 (completed)
+**Tasks Completed:** 79
+**Current Task:** P11-03 (completed)
 
 ---
 
@@ -93,6 +93,26 @@
   - `test_unicode_accents_preserved`: verifies unicode accents (ñ, í, ó) are preserved in output
 - Test: `cd backend && uv run pytest tests/csv/test_csv_writer.py -v` — **PASS** (6 tests)
 - Also verified: `cd backend && uv run ruff check app/csv_io/exporter.py tests/csv/test_csv_writer.py` — **PASS**
+
+### 2026-04-15 — P11-03: Pre-write assertion
+- Extended `backend/app/csv_io/exporter.py` with `RowCountDriftError` exception class and `export_job_to_csv()` function
+- Added `logging` module import and created `nomenclator.export` logger
+- `RowCountDriftError` stores job_id, in_count, and out_count for detailed error reporting
+- `export_job_to_csv(conn, job_id)` is the top-level export function that:
+  - Fetches job via `get_job()` from jobs DAO
+  - Fetches export rows via `fetch_export_rows()`
+  - Asserts row count matches job.total_rows to enforce row-count invariant
+  - Logs drift error with job_id, in_count, and out_count via structured logging
+  - Raises `RowCountDriftError` if counts don't match
+  - Returns CSV bytes via `write_csv_bytes()` on success
+- For partial runs (row subset mode), job.total_rows reflects subset size, so assertion correctly validates against subset
+- Created `backend/tests/csv/test_assertion.py` with 4 assertions:
+  - `test_export_happy_path_bytes_nonzero`: verifies export returns nonzero bytes for happy path
+  - `test_export_row_count_matches_input`: verifies export returns rows matching job.total_rows count
+  - `test_export_raises_on_count_drift`: verifies RowCountDriftError raised when row count doesn't match
+  - `test_export_drift_logged_with_counts`: verifies drift is logged with job_id and counts using caplog
+- Test: `cd backend && uv run pytest tests/csv/test_assertion.py -v` — **PASS** (4 tests)
+- Also verified: `cd backend && uv run ruff check app/csv_io/exporter.py tests/csv/test_assertion.py` — **PASS**
 
 ---
 
