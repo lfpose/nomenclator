@@ -46,6 +46,7 @@ let currentRalphState: RalphState | null = null;
 let currentIterationStats: IterationStats | null = null;
 let currentHealthEvents: HealthEvent[] = [];
 let overlayHandle: { close: () => void; setHidden: (hidden: boolean) => void } | null = null;
+let sidebarUpdateFn: ((state: RalphState | null, stats: IterationStats | null, events: HealthEvent[]) => void) | null = null;
 
 // Parse state.json
 async function parseRalphState(obsDir: string): Promise<RalphState | null> {
@@ -122,6 +123,11 @@ async function updateRalphData(ctx: ExtensionContext): Promise<void> {
 	currentRalphState = await parseRalphState(obsDir);
 	currentIterationStats = await parseIterationStats(obsDir);
 	currentHealthEvents = await parseHealthEvents(obsDir);
+
+	// Update sidebar if it's visible
+	if (sidebarUpdateFn) {
+		sidebarUpdateFn(currentRalphState, currentIterationStats, currentHealthEvents);
+	}
 
 	updateStatus(ctx);
 }
@@ -289,7 +295,7 @@ function showSidebar(ctx: ExtensionContext): void {
 			sidebar.updateData(currentRalphState, currentIterationStats, currentHealthEvents);
 
 			// Store reference to update later
-			(currentRalphState as any).updateData = (state: RalphState | null, stats: IterationStats | null, events: HealthEvent[]) => {
+			sidebarUpdateFn = (state: RalphState | null, stats: IterationStats | null, events: HealthEvent[]) => {
 				sidebar.updateData(state, stats, events);
 			};
 
@@ -322,6 +328,7 @@ function hideSidebar(): void {
 		overlayHandle.close();
 		overlayHandle = null;
 	}
+	sidebarUpdateFn = null;
 }
 
 // Get human-readable time ago
