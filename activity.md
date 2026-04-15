@@ -2,12 +2,36 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 111
-**Current Task:** P14-09 (completed)
+**Tasks Completed:** 112
+**Current Task:** P14-10 (completed)
 
 ---
 
 ## Session Log
+
+### 2026-04-15 — P14-10: Notifications integration
+- Created `frontend/src/hooks/useNotification.ts` with notification management hook:
+  - Tracks whether permission has been requested via state
+  - Exports `requestPermission()` function to request Notification API permission
+  - Exports `notifyJobTerminal(status, jobId)` function to fire notifications for terminal job statuses (completed, failed, cancelled)
+  - Returns `hasRequestedPermission` and `permissionState` for tracking permission state
+  - Handles unsupported environment gracefully (returns "unsupported" for permissionState)
+  - Checks Notification.permission before firing notification to respect denied permissions
+  - Uses useEffect to monitor for permission changes that might occur outside the hook
+- Created `frontend/tests/notification.test.tsx` with 4 assertions:
+  - `requests permission on first commit`: verifies permission is requested via Notification.requestPermission(), hasRequestedPermission becomes true, permissionState updates to "granted"
+  - `fires notification on job complete`: verifies new Notification() is called with correct title and body for completed status
+  - `no-op if permission denied`: verifies no notification is fired when permission is denied
+  - `does not request permission before commit`: verifies permission is not automatically requested on hook mount, must be explicitly called
+- Fixed issues during implementation:
+  - Changed from useRef to useState for hasRequestedPermission to ensure state updates trigger re-renders and are accessible in tests
+  - Fixed Notification mock to work as a proper constructor using Object.assign function
+  - Wrapped async permission request in act() to satisfy React's testing requirements
+  - Used waitFor() to wait for state updates before asserting on hasRequestedPermission
+  - Removed unused type definitions (JobStatus, NonTerminalStatus) to fix TypeScript compilation errors
+- Test: `cd frontend && pnpm test --run tests/notification.test.tsx` — **PASS** (4 tests)
+- Also verified: `cd frontend && pnpm tsc --noEmit` — **PASS**
+- Also verified: `cd frontend && pnpm build` — **PASS**
 
 ### 2026-04-15 — P14-09: Job status panel with polling
 - Created `frontend/src/hooks/useJobPolling.ts` with polling hook:

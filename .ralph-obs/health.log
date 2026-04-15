@@ -116,3 +116,4 @@
 [2026-04-15T19:43:05+00:00] [ERROR] Agent error on task P14-06
 [2026-04-15T19:45:15+00:00] [ERROR] Agent error on task P14-07
 [2026-04-15T19:51:26+00:00] [ERROR] Agent error on task P14-08
+[2026-04-15T19:55:56+00:00] [WARN] Task P14-09 test failed (stuck: 0)
