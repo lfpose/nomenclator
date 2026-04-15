@@ -254,3 +254,9 @@
 - Created `backend/tests/cluster/test_unionfind.py` with 7 assertions: find on singleton returns self, union merges roots, components on disjoint graph, components on chain, union idempotent, deterministic output, large union-find 1000 elements under 10ms
 - Fixed test_components_on_chain to use UnionFind(4) instead of UnionFind(5) for correct component count
 - Test: `cd backend && uv run pytest tests/cluster/test_unionfind.py -v` — **PASS** (7 tests)
+
+### 2026-04-15 — P04-02: Length ratio helper
+- Created `backend/app/cluster/similarity.py` with `len_ratio(a: str, b: str) -> float` function
+- len_ratio computes min(len(a), len(b)) / max(len(a), len(b)), returning 0.0 for empty strings
+- Created `backend/tests/cluster/test_similarity.py` with 4 assertions: identical strings return 1, half length returns half, empty string returns 0, symmetric property
+- Test: `cd backend && uv run pytest tests/cluster/test_similarity.py -v` — **PASS** (4 tests)

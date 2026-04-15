@@ -407,7 +407,7 @@ Key features: prompt review (optional AI validation), row subset (test with firs
       "Verify: cd backend && uv run pytest tests/cluster/test_similarity.py::test_len_ratio -v"
     ],
     "test": "cd backend && uv run pytest tests/cluster/test_similarity.py::test_len_ratio -v",
-    "passes": false
+    "passes": true
   },
   {
     "id": "P04-03",
