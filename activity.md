@@ -215,3 +215,12 @@
 - Raises CSVError('input_too_large') when more than 50,000 lines
 - Created `backend/tests/csv/test_parse_text.py` with 5 assertions: one per line, skips blank lines, strips whitespace, empty raises error, too large raises error
 - Test: `cd backend && uv run pytest tests/csv/test_parse_text.py -v` — **PASS** (5 tests)
+
+### 2026-04-15 — P03-04: Ingestion validation: blank rows
+- Created `backend/app/csv_io/ingest.py` with `ingest()` function that accepts optional `file_bytes` or `text` parameters
+- ingest() validates exactly one input source is provided, parses using parse_csv or parse_text, normalizes each row, and rejects rows that normalize to empty
+- Raises CSVError('input_malformed') when both or neither source is provided
+- Raises CSVError('input_contains_blank_rows') when a row normalizes to empty (with row index and original value in message)
+- Returns list of tuples (index, original, normalized) for valid rows
+- Created `backend/tests/csv/test_ingest.py` with 6 assertions: CSV bytes returns indexed triples, text returns indexed triples, blank row raises error, preserves original untouched, both sources raises error, neither source raises error
+- Test: `cd backend && uv run pytest tests/csv/test_ingest.py -v` — **PASS** (6 tests)
