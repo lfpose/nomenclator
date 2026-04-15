@@ -5,7 +5,14 @@ from ..auth.middleware import require_session
 from ..auth.rate_limit import COMMIT_LIMITER
 from ..csv_io.parser import CSVError
 from ..db import db_dep
-from ..jobs.service import ConcurrencyError, SpendCapExceeded, commit_job, create_preview_job, recluster_job
+from ..jobs.service import (
+    ConcurrencyError,
+    SpendCapExceeded,
+    cancel_job,
+    commit_job,
+    create_preview_job,
+    recluster_job,
+)
 from .errors import APIError
 
 router = APIRouter(dependencies=[Depends(require_session)])
@@ -110,3 +117,23 @@ def commit(job_id: str, body: CommitRequest, request: Request, conn=Depends(db_d
             raise APIError("job_not_found", "No such job.", 404)
         raise
     return {"job_id": job_id, "status": "submitted"}
+
+
+@router.post("/{job_id}/cancel")
+def cancel(job_id: str, request: Request, conn=Depends(db_dep)):
+    """Cancel a job in a cancellable state.
+
+    Jobs can only be cancelled when they are in queued, submitted, polling,
+    or retrying states. Terminal states (completed, failed, cancelled) cannot
+    be cancelled.
+    """
+    try:
+        cancel_job(conn, request.app.state.anthropic_client, job_id)
+    except ValueError as e:
+        msg = str(e)
+        if "job_not_found" in msg:
+            raise APIError("job_not_found", "No such job.", 404)
+        if "invalid_state" in msg:
+            raise APIError("invalid_state", "Job is not in a cancellable state.", 409)
+        raise
+    return {"ok": True}

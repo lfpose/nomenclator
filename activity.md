@@ -2,8 +2,8 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 73
-**Current Task:** P10-05 (completed)
+**Tasks Completed:** 74
+**Current Task:** P10-07 (completed)
 
 ---
 
@@ -1125,3 +1125,20 @@
 - All 6 tests pass
 - Test: `cd backend && uv run pytest tests/api/test_api_commit.py -v` — **PASS** (6 tests)
 - Also verified: `cd backend && uv run ruff check app/api/jobs.py tests/api/test_api_commit.py app/main.py` — **PASS**
+
+### 2026-04-15 — P10-07: POST /jobs/:id/cancel
+- Extended `backend/app/api/jobs.py` with POST /jobs/{job_id}/cancel endpoint:
+  - Thin wrapper around `cancel_job()` from jobs service
+  - Handles ValueError for 'job_not_found' and returns 404 with job_not_found error code
+  - Handles ValueError for 'invalid_state' and returns 409 with invalid_state error code
+  - Requires authentication via `require_session` dependency (inherited from router)
+  - Calls `cancel_job(conn, request.app.state.anthropic_client, job_id)` to cancel the job
+  - Returns `{"ok": True}` on success
+- Added import for `cancel_job` from `..jobs.service` module
+- Created `backend/tests/api/test_api_cancel.py` with 3 assertions:
+  - `test_cancel_transitions_to_cancelled`: verifies cancel transitions job to cancelled state from queued state
+  - `test_cancel_terminal_returns_409`: verifies cancel returns 409 with invalid_state error when job is in terminal state (completed)
+  - `test_cancel_missing_job_404`: verifies cancel returns 404 with job_not_found error when job does not exist
+- Tests use temporary database and monkeypatch password hash for isolated testing
+- Test: `cd backend && uv run pytest tests/api/test_api_cancel.py -v` — **PASS** (3 tests)
+- Also verified: `cd backend && uv run ruff check app/api/jobs.py tests/api/test_api_cancel.py` — **PASS**
