@@ -72,7 +72,7 @@ Key features: prompt review (optional AI validation), row subset (test with firs
       "Verify: cd frontend && pnpm build exits 0 and produces dist/index.html"
     ],
     "test": "cd frontend && pnpm build && pnpm test --run",
-    "passes": false
+    "passes": true
   },
   {
     "id": "P01-05",

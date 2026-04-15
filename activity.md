@@ -2,8 +2,8 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 2
-**Current Task:** P01-04
+**Tasks Completed:** 3
+**Current Task:** P01-05
 
 ---
 
@@ -31,3 +31,14 @@
 - Created `backend/tests/test_smoke.py` with test_health_returns_200 and test_health_reports_version
 - Added hatchling build system to pyproject.toml so `app` package is installable via `uv sync`
 - Test: `cd backend && uv run pytest tests/test_smoke.py -v` — **PASS** (2 tests, 0 warnings)
+
+### 2026-04-15 — P01-04: Frontend project skeleton (Vite + React + TS)
+- Scaffolded Vite + React + TypeScript project in `frontend/`
+- Created `package.json` with all required deps: react, react-dom, @tanstack/react-router, tailwindcss, @tailwindcss/vite, font sources, mermaid, and dev deps: vitest, testing-library, jsdom, prettier
+- Added hatchling build system; configured `vitest/config` for vite.config.ts with tailwindcss + react plugins, jsdom test env
+- Added path alias `@/*` → `./src/*` in tsconfig.json and tsconfig.app.json
+- Ran `npx shadcn@latest init` (neutral theme) — created components.json, button.tsx, utils.ts, globals.css with CSS variables
+- Created `frontend/src/main.tsx` with minimal React root
+- Created `frontend/tests/placeholder.test.tsx` (vitest 4.x for vite 8 compatibility)
+- Upgraded vitest to v4.1.4 for vite 8 compatibility
+- Test: `cd frontend && pnpm build && pnpm test --run` — **PASS** (build produces dist/index.html, 1 test passes)
