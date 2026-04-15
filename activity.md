@@ -2,8 +2,8 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 16
-**Current Task:** P02-09
+**Tasks Completed:** 17
+**Current Task:** P02-10
 
 ---
 
@@ -162,3 +162,11 @@
 - list_pending_requests: returns only requests with status='pending'
 - Created `backend/tests/dao/test_batch_requests.py` with 5 assertions
 - Test: `cd backend && uv run pytest tests/dao/test_batch_requests.py -v` — **PASS** (5 tests)
+
+### 2026-04-15 — P02-10: DAO: spend_log
+- Created `backend/app/dao/spend_log.py` with SpendLog dataclass and 3 functions: insert_spend, sum_last_30_days, reset_date_approx
+- insert_spend: inserts a spend log entry with job_id, optional batch_id, usd amount, and timestamp
+- sum_last_30_days: returns the sum of all spend entries in the last 30 days; defaults to current time if now not provided
+- reset_date_approx: returns the approximate reset date (oldest entry + 30 days) or None if no entries in window
+- Created `backend/tests/dao/test_spend_log.py` with 4 assertions
+- Test: `cd backend && uv run pytest tests/dao/test_spend_log.py -v` — **PASS** (4 tests)
