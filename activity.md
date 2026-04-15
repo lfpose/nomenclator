@@ -2,8 +2,8 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 38
-**Current Task:** P05-10
+**Tasks Completed:** 39
+**Current Task:** P05-11
 
 ---
 
@@ -475,4 +475,19 @@
   - test_parse_invalid_schema_raises_schema_violation: verifies schema validation error propagation
 - Test: `cd backend && uv run pytest tests/anthropic/test_response_parser.py -v` — **PASS** (4 tests)
 - Also verified: ruff check passes on both files
+
+### 2026-04-15 — P05-11: Dry-run response generator
+- Created `backend/app/anthropic/dry_run.py` with `generate_dry_run_results()` function
+- Function takes `cluster_ids: list[int]` and `titles: list[str]` and returns `ToolOutput` with fake deterministic responses
+- Each result gets sequential ID (t001, t002, ...), male_es with '(M)' suffix, female_es with '(F)' suffix, and category='DRY_RUN'
+- Used for testing and dry-run mode where no actual Anthropic API calls are made
+- Created `backend/tests/anthropic/test_dry_run.py` with 6 assertions:
+  - test_dry_run_returns_tool_output_with_correct_count: verifies correct number of results
+  - test_dry_run_male_es_has_m_suffix: checks '(M)' suffix on male_es field
+  - test_dry_run_female_es_has_f_suffix: checks '(F)' suffix on female_es field
+  - test_dry_run_category_is_dry_run: verifies all results have category='DRY_RUN'
+  - test_dry_run_ids_are_sequential_t_prefixed: checks sequential t001, t002, ... format
+  - test_dry_run_deterministic_same_input_same_output: verifies same input produces identical output
+- Test: `cd backend && uv run pytest tests/anthropic/test_dry_run.py -v` — **PASS** (6 tests)
+- Also verified: `cd backend && uv run ruff check app/anthropic/dry_run.py tests/anthropic/test_dry_run.py` — **PASS**
 
