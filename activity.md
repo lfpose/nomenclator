@@ -2,12 +2,28 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 93
-**Current Task:** P12-08 (completed)
+**Tasks Completed:** 94
+**Current Task:** P13-01 (completed)
 
 ---
 
 ## Session Log
+
+### 2026-04-15 — P13-01: Tailwind + shadcn globals
+- Replaced `frontend/src/styles/globals.css` with HSL-based CSS variables from spec/11-design-system.md (light mode: --background: 0 0% 98%, dark mode: --background: 0 0% 4%)
+- Removed Tailwind v4 @theme inline block and replaced with traditional @layer base approach using hsl(var(--variable)) syntax
+- Updated CSS imports to use @fontsource-variable/inter, @fontsource-variable/fraunces, and @fontsource/jetbrains-mono
+- Created `frontend/tailwind.config.ts` with custom font families: Inter Variable, Fraunces Variable, and JetBrains Mono
+- Updated `frontend/tailwind.config.ts` to extend Vite configuration with theme.extend.fontFamily
+- Created `frontend/tests/globals.test.ts` with 3 assertions:
+  - `test("defines --background variable in :root")`: verifies CSS file contains :root section with correct --background value
+  - `test("dark mode overrides --background")`: verifies .dark section overrides --background with correct dark mode value
+  - `test("tailwind config has custom font families")`: verifies tailwind.config.ts contains Inter Variable, Fraunces Variable, and JetBrains Mono
+- Fixed issues with jsdom not supporting CSS custom property resolution in getComputedStyle - changed approach to read CSS and config files directly instead of testing runtime behavior
+- Removed test-helper.ts file (no longer needed after simplifying test approach)
+- Verified: `cd frontend && pnpm test --run tests/globals.test.ts` — **PASS** (3 tests)
+- Verified: `cd frontend && pnpm build` — **PASS**
+- Verified: `cd frontend && pnpm tsc --noEmit` — **PASS** (no errors)
 
 ### 2026-04-15 — P12-08: Test 8: Spend cap during retry flags stragglers
 - Created `backend/tests/reliability/test_08_cap_during_retry.py` with 4 assertions:
