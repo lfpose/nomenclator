@@ -2,8 +2,8 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 18
-**Current Task:** P02-11
+**Tasks Completed:** 19
+**Current Task:** P03-01
 
 ---
 
@@ -189,3 +189,11 @@
 - Fixed incorrect imports in test_clusters.py and test_batches.py (changed `from backend.app.dao...` to `from app.dao...`)
 - Consolidated imports at top of test files, removing inline imports
 - Test: `cd backend && uv run pytest tests/dao/ -v` — **PASS** (40 tests total)
+
+### 2026-04-15 — P03-01: Normalization function
+- Created `backend/app/csv_io/__init__.py` for the csv_io package
+- Created `backend/app/csv_io/normalize.py` with normalize(s) function that strips accents, lowercases, drops punctuation (except hyphens), and collapses whitespace
+- Implementation uses unicodedata.normalize("NFKD") to strip accents, regex to drop non-alphanumeric characters (except hyphens), and split/join to collapse whitespace
+- Created `backend/tests/csv/__init__.py` for the tests/csv package
+- Created `backend/tests/csv/test_normalize.py` with 8 assertions: strips accents, lowercases, collapses whitespace, drops punctuation, preserves inner hyphen, empty string, only punctuation, idempotency
+- Test: `cd backend && uv run pytest tests/csv/test_normalize.py -v` — **PASS** (8 tests)
