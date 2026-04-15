@@ -22,6 +22,7 @@ interface RalphState {
 	stuck_count: number;
 	last_successful: string;
 	total_failed: number;
+	pid?: number;
 	updated_at: string;
 }
 
@@ -46,7 +47,8 @@ let currentRalphState: RalphState | null = null;
 let currentIterationStats: IterationStats | null = null;
 let currentHealthEvents: HealthEvent[] = [];
 let overlayHandle: { close: () => void; setHidden: (hidden: boolean) => void } | null = null;
-let sidebarUpdateFn: ((state: RalphState | null, stats: IterationStats | null, events: HealthEvent[]) => void) | null = null;
+let sidebarUpdateFn: ((state: RalphState | null, stats: IterationStats | null, events: HealthEvent[], isRunning: boolean) => void) | null = null;
+let isRalphRunning = false;
 
 // Parse state.json
 async function parseRalphState(obsDir: string): Promise<RalphState | null> {
@@ -113,6 +115,20 @@ async function parseHealthEvents(obsDir: string): Promise<HealthEvent[]> {
 	}
 }
 
+// Check if process is running
+async function isProcessRunning(pid: number): Promise<boolean> {
+	try {
+		const { exec } = await import("node:child_process");
+		return new Promise((resolve) => {
+			exec(`kill -0 ${pid} 2>/dev/null`, (error) => {
+				resolve(!error);
+			});
+		});
+	} catch {
+		return false;
+	}
+}
+
 // Update function - reads all data and updates UI
 async function updateRalphData(ctx: ExtensionContext): Promise<void> {
 	if (!ctx.cwd || !watchEnabled) return;
@@ -124,29 +140,56 @@ async function updateRalphData(ctx: ExtensionContext): Promise<void> {
 	currentIterationStats = await parseIterationStats(obsDir);
 	currentHealthEvents = await parseHealthEvents(obsDir);
 
+	// Check if Ralph process is running
+	// Default to false when there's no PID, otherwise we'd show RUNNING forever
+	isRalphRunning = false;
+	if (currentRalphState?.pid) {
+		isRalphRunning = await isProcessRunning(currentRalphState.pid);
+	} else if (currentRalphState?.updated_at) {
+		// If no PID but we have state, check if it's stale (> 5 minutes old)
+		const stateAge = Date.now() - new Date(currentRalphState.updated_at).getTime();
+		if (stateAge < 5 * 60 * 1000) {
+			// State is recent, assume running (old state format without PID)
+			isRalphRunning = true;
+		}
+	}
+
 	// Update sidebar if it's visible
 	if (sidebarUpdateFn) {
-		sidebarUpdateFn(currentRalphState, currentIterationStats, currentHealthEvents);
+		sidebarUpdateFn(currentRalphState, currentIterationStats, currentHealthEvents, isRalphRunning);
 	}
 
 	updateStatus(ctx);
 }
 
 // Update footer status
-function updateStatus(ctx: ExtensionContext): void {
+async function updateStatus(ctx: ExtensionContext): Promise<void> {
 	if (!watchEnabled || !currentRalphState) {
 		ctx.ui.setStatus("ralph-watch", undefined);
 		return;
 	}
 
 	const theme = ctx.ui.theme;
-	const { stuck_count, total_failed } = currentRalphState;
+	const { stuck_count, total_failed, pid } = currentRalphState;
+
+	// Check if Ralph process is actually running
+	let isRunning = false;
+	if (pid) {
+		isRunning = await isProcessRunning(pid);
+	} else if (currentRalphState?.updated_at) {
+		// If no PID but we have state, check if it's stale (> 5 minutes old)
+		const stateAge = Date.now() - new Date(currentRalphState.updated_at).getTime();
+		isRunning = stateAge < 5 * 60 * 1000;
+	}
 
 	let status: string;
 	let color: (s: string) => string;
 
-	if (stuck_count >= 5) {
-		status = "🚫 STOPPED";
+	if (!isRunning) {
+		status = "⭕ STOPPED";
+		color = theme.fg.bind(theme, "dim");
+	} else if (stuck_count >= 5) {
+		status = "🚫 STUCK";
 		color = theme.fg.bind(theme, "error");
 	} else if (stuck_count >= 3) {
 		status = "⚠️ WARNING";
@@ -172,6 +215,7 @@ class RalphSidebarComponent extends Container {
 	private ralphState: RalphState | null = null;
 	private iterationStats: IterationStats | null = null;
 	private healthEvents: HealthEvent[] = [];
+	private isRunning: boolean = true;
 
 	constructor(theme: any, invalidateFn: () => void) {
 		super();
@@ -179,10 +223,11 @@ class RalphSidebarComponent extends Container {
 		this.invalidateFn = invalidateFn;
 	}
 
-	updateData(state: RalphState | null, stats: IterationStats | null, events: HealthEvent[]): void {
+	updateData(state: RalphState | null, stats: IterationStats | null, events: HealthEvent[], running: boolean): void {
 		this.ralphState = state;
 		this.iterationStats = stats;
 		this.healthEvents = events;
+		this.isRunning = running;
 		this.invalidate();
 	}
 
@@ -207,7 +252,8 @@ class RalphSidebarComponent extends Container {
 		if (this.ralphState) {
 			// Current state
 			lines.push(`${th.fg("dim", "Task:")}    ${this.ralphState.current_task || "none"}`);
-			lines.push(`${th.fg("dim", "Stuck:")}   ${this.ralphState.stuck_count}${th.fg("dim", "/5")}`);
+			const runningStatus = this.isRunning ? th.fg("success", "●") : th.fg("dim", "○");
+			lines.push(`${th.fg("dim", "Stuck:")}   ${this.ralphState.stuck_count}${th.fg("dim", "/5")} ${runningStatus}`);
 
 			const failedColor = this.ralphState.total_failed > 0 ? "error" : "success";
 			lines.push(`${th.fg("dim", "Failed:")}  ${th.fg(failedColor, String(this.ralphState.total_failed))}`);
@@ -292,17 +338,17 @@ function showSidebar(ctx: ExtensionContext): void {
 			component.addChild(sidebar);
 
 			// Initial data
-			sidebar.updateData(currentRalphState, currentIterationStats, currentHealthEvents);
+			sidebar.updateData(currentRalphState, currentIterationStats, currentHealthEvents, isRalphRunning);
 
 			// Store reference to update later
-			sidebarUpdateFn = (state: RalphState | null, stats: IterationStats | null, events: HealthEvent[]) => {
-				sidebar.updateData(state, stats, events);
+			sidebarUpdateFn = (state: RalphState | null, stats: IterationStats | null, events: HealthEvent[], running: boolean) => {
+				sidebar.updateData(state, stats, events, running);
 			};
 
 			return {
 				render: (width) => component.render(width),
 				invalidate: () => component.invalidate(),
-				handleInput: () => true, // Don't handle input
+				handleInput: () => false, // Don't consume input - let it pass through
 			};
 		},
 		{

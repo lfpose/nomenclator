@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Tooltip,
   TooltipContent,
@@ -19,8 +18,6 @@ interface AdvancedPanelProps {
   onThresholdChange?: (value: number) => void;
   titlesPerRequest?: number;
   onTitlesPerRequestChange?: (value: number) => void;
-  promptOverride?: string;
-  onPromptOverrideChange?: (value: string) => void;
   isDryRun?: boolean;
   onDryRunChange?: (checked: boolean) => void;
 }
@@ -30,13 +27,10 @@ export function AdvancedPanel({
   onThresholdChange,
   titlesPerRequest = 25,
   onTitlesPerRequestChange,
-  promptOverride = "",
-  onPromptOverrideChange,
   isDryRun = false,
   onDryRunChange,
 }: AdvancedPanelProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [localPrompt, setLocalPrompt] = useState(promptOverride);
 
   const handleThresholdChange = (value: number[]) => {
     onThresholdChange?.(value[0]);
@@ -47,16 +41,6 @@ export function AdvancedPanel({
     if (!isNaN(value) && value >= 1 && value <= 50) {
       onTitlesPerRequestChange?.(value);
     }
-  };
-
-  const handlePromptChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setLocalPrompt(e.target.value);
-    onPromptOverrideChange?.(e.target.value);
-  };
-
-  const handleResetPrompt = () => {
-    setLocalPrompt("");
-    onPromptOverrideChange?.("");
   };
 
   return (
@@ -129,30 +113,22 @@ export function AdvancedPanel({
               />
             </div>
 
-            {/* Prompt override textarea */}
-            <div className="space-y-2">
-              <Label htmlFor="promptOverride">System prompt override (optional)</Label>
-              <Textarea
-                id="promptOverride"
-                placeholder="Override the default system prompt..."
-                value={localPrompt}
-                onChange={handlePromptChange}
-                rows={8}
-                className="font-mono text-sm"
-              />
-              {localPrompt && (
-                <Button type="button" variant="outline" size="sm" onClick={handleResetPrompt}>
-                  Reset
-                </Button>
-              )}
-            </div>
-
             {/* Dry run switch */}
             <div className="flex items-center space-x-2">
               <Switch id="dryRun" checked={isDryRun} onCheckedChange={onDryRunChange} />
-              <Label htmlFor="dryRun" className="font-normal">
-                Dry run (no API cost)
-              </Label>
+              <Tooltip>
+                <TooltipTrigger>
+                  <Label htmlFor="dryRun" className="font-normal cursor-help">
+                    Dry run (no API cost)
+                  </Label>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="max-w-xs">
+                    Run the full pipeline with fake results instead of calling the AI. Useful for
+                    testing that your CSV uploads correctly. Costs nothing.
+                  </p>
+                </TooltipContent>
+              </Tooltip>
             </div>
           </CollapsibleContent>
         </div>

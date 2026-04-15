@@ -20,7 +20,7 @@ interface TaxonomyInputProps {
 export function TaxonomyInput({
   value: controlledValue,
   onChange,
-  placeholder = "Enter optional taxonomy (one category per line)",
+  placeholder = "Ventas\nTecnología\nOperaciones\nFinanzas\nRRHH\nOtros",
   label = "Taxonomy (optional)",
   id = "taxonomy",
   rows = 10,

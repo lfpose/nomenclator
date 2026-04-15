@@ -21,8 +21,11 @@ export function InputArea({ onInput }: InputAreaProps) {
 
   const handleFile = (file: File) => {
     onInput({ file });
-    // Clear pasted text when file is selected
     setPastedText("");
+  };
+
+  const handleFileClear = () => {
+    onInput({});
   };
 
   const handleTextChange = (text: string) => {
@@ -30,26 +33,22 @@ export function InputArea({ onInput }: InputAreaProps) {
     onInput({ text });
   };
 
-  const handleTogglePaste = () => {
-    setIsPasteOpen(!isPasteOpen);
-  };
-
   return (
     <div className="space-y-4">
       {/* Drop Zone for file upload */}
-      <DropZone onFile={handleFile} accept=".csv" />
+      <DropZone onFile={handleFile} onClear={handleFileClear} accept=".csv" />
 
       {/* Paste text collapsible section */}
       <Collapsible open={isPasteOpen} onOpenChange={setIsPasteOpen}>
         <div className="flex items-center justify-between space-x-4">
           <Label htmlFor="paste-text" className="text-sm font-medium">
-            Or paste text
+            Or paste titles
           </Label>
           <Button
             variant="ghost"
             size="sm"
             type="button"
-            onClick={handleTogglePaste}
+            onClick={() => setIsPasteOpen(!isPasteOpen)}
           >
             {isPasteOpen ? "Hide" : "Show"}
           </Button>
@@ -60,8 +59,9 @@ export function InputArea({ onInput }: InputAreaProps) {
             placeholder="Paste job titles here (one per line)"
             value={pastedText}
             onChange={(e) => handleTextChange(e.target.value)}
-            rows={10}
-            className="font-mono text-sm"
+            rows={8}
+            className="font-mono text-sm max-h-48 overflow-y-auto"
+            style={{ fieldSizing: "fixed" } as React.CSSProperties}
           />
         </CollapsibleContent>
       </Collapsible>

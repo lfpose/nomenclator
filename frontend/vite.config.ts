@@ -12,6 +12,12 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    proxy: {
+      "/jobs": "http://localhost:8000",
+      "/auth": "http://localhost:8000",
+      "/me": "http://localhost:8000",
+      "/spend": "http://localhost:8000",
+    },
   },
   test: {
     environment: "jsdom",

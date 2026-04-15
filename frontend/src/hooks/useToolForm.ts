@@ -29,9 +29,13 @@ type ToolAction =
   | { type: "REVIEW_PROMPT_SUCCESS" }
   | { type: "START_COMMIT" }
   | { type: "COMMIT_SUCCESS"; payload: { jobId: string } }
+  | { type: "PREVIEW_FAILED"; payload: string }
   | { type: "POLL_UPDATE"; payload: JobDetail }
   | { type: "POLL_FAILED"; payload: { jobId: string; message: string } }
   | { type: "POLL_CANCELLED"; payload: string }
+  | { type: "SET_DRY_RUN"; payload: boolean }
+  | { type: "SET_ROW_SUBSET_MODE"; payload: "all" | "first_n" | "random_n" }
+  | { type: "SET_ROW_SUBSET_N"; payload: number | null }
   | { type: "RESET" };
 
 interface FormState {
@@ -75,6 +79,12 @@ function toolReducer(state: ToolFormState, action: ToolAction): ToolFormState {
         toolState: { kind: "previewed", preview: action.payload },
       };
 
+    case "PREVIEW_FAILED":
+      return {
+        ...state,
+        toolState: { kind: "idle" },
+      };
+
     case "START_RECLUSTER":
       if (state.toolState.kind === "previewed") {
         return {
@@ -97,7 +107,6 @@ function toolReducer(state: ToolFormState, action: ToolAction): ToolFormState {
       };
 
     case "REVIEW_PROMPT_SUCCESS":
-      // Return to previous state after review
       return state;
 
     case "START_COMMIT":
@@ -121,7 +130,6 @@ function toolReducer(state: ToolFormState, action: ToolAction): ToolFormState {
             toolState: { kind: "completed", jobId: state.toolState.jobId, job },
           };
         }
-        // Still running, keep same state
         return state;
       }
       return state;
@@ -139,6 +147,25 @@ function toolReducer(state: ToolFormState, action: ToolAction): ToolFormState {
       return {
         ...state,
         toolState: { kind: "cancelled", jobId: action.payload },
+      };
+
+    case "SET_DRY_RUN":
+      return {
+        ...state,
+        is_dry_run: action.payload,
+      };
+
+    case "SET_ROW_SUBSET_MODE":
+      return {
+        ...state,
+        row_subset_mode: action.payload,
+        row_subset_n: action.payload === "all" ? null : state.row_subset_n,
+      };
+
+    case "SET_ROW_SUBSET_N":
+      return {
+        ...state,
+        row_subset_n: action.payload,
       };
 
     case "RESET":
@@ -165,6 +192,10 @@ export function useToolForm() {
 
   const previewSuccess = (preview: PreviewResponse) => {
     dispatch({ type: "PREVIEW_SUCCESS", payload: preview });
+  };
+
+  const previewFailed = (message: string) => {
+    dispatch({ type: "PREVIEW_FAILED", payload: message });
   };
 
   const startRecluster = () => {
@@ -208,25 +239,15 @@ export function useToolForm() {
   };
 
   const setRowSubsetMode = (mode: "all" | "first_n" | "random_n") => {
-    return {
-      ...state,
-      row_subset_mode: mode,
-      row_subset_n: mode === "all" ? null : state.row_subset_n,
-    };
+    dispatch({ type: "SET_ROW_SUBSET_MODE", payload: mode });
   };
 
   const setRowSubsetN = (n: number | null) => {
-    return {
-      ...state,
-      row_subset_n: n,
-    };
+    dispatch({ type: "SET_ROW_SUBSET_N", payload: n });
   };
 
   const setDryRun = (isDryRun: boolean) => {
-    return {
-      ...state,
-      is_dry_run: isDryRun,
-    };
+    dispatch({ type: "SET_DRY_RUN", payload: isDryRun });
   };
 
   return {
@@ -234,6 +255,7 @@ export function useToolForm() {
     loadInput,
     startPreview,
     previewSuccess,
+    previewFailed,
     startRecluster,
     reclusterSuccess,
     startReviewPrompt,

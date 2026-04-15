@@ -6,13 +6,18 @@
 import { useEffect, useState } from "react";
 import { useToolForm } from "@/hooks/useToolForm";
 import { jobsApi } from "@/lib/jobs-api";
+import { DEFAULT_SYSTEM_PROMPT, DEFAULT_FEW_SHOTS } from "@/lib/defaults";
 import { InputArea } from "@/components/InputArea";
+import { RowSubsetSelector } from "@/components/RowSubsetSelector";
 import { TaxonomyInput } from "@/components/TaxonomyInput";
+import { PromptReviewPanel } from "@/components/PromptReviewPanel";
 import { AdvancedPanel } from "@/components/AdvancedPanel";
 import { JobStatusPanel } from "@/components/JobStatusPanel";
 import { HistoryList } from "@/components/HistoryList";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { AlertCircle, RefreshCw } from "lucide-react";
 
 export default function IndexRoute() {
@@ -21,6 +26,7 @@ export default function IndexRoute() {
     loadInput,
     startPreview,
     previewSuccess,
+    previewFailed,
     startRecluster,
     reclusterSuccess,
     startCommit,
@@ -28,13 +34,18 @@ export default function IndexRoute() {
     pollFailed,
     pollCancelled,
     reset,
+    setRowSubsetMode,
+    setRowSubsetN,
+    setDryRun,
   } = useToolForm();
 
   // Local state for form parameters
   const [threshold, setThreshold] = useState(90);
   const [titlesPerRequest, setTitlesPerRequest] = useState(25);
   const [taxonomy, setTaxonomy] = useState("");
-  const [promptOverride, setPromptOverride] = useState("");
+  const [systemPrompt, setSystemPrompt] = useState(DEFAULT_SYSTEM_PROMPT);
+  const [fewShots, setFewShots] = useState(DEFAULT_FEW_SHOTS);
+  const [previewError, setPreviewError] = useState<string | null>(null);
 
   // Jobs history
   const [jobs, setJobs] = useState<ReturnType<typeof jobsApi.list> extends Promise<infer T> ? T : { jobs: [] }>({ jobs: [] });
@@ -52,6 +63,7 @@ export default function IndexRoute() {
   const handlePreview = async () => {
     if (state.toolState.kind !== "input_loaded") return;
 
+    setPreviewError(null);
     startPreview();
     try {
       const formData = new FormData();
@@ -72,7 +84,8 @@ export default function IndexRoute() {
       previewSuccess(preview);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Failed to preview";
-      pollFailed("", errorMessage);
+      previewFailed(errorMessage);
+      setPreviewError(errorMessage);
     }
   };
 
@@ -97,8 +110,9 @@ export default function IndexRoute() {
 
     startCommit();
     try {
+      const promptOverride = systemPrompt !== DEFAULT_SYSTEM_PROMPT ? systemPrompt : undefined;
       const response = await jobsApi.commit(state.toolState.preview.job_id, {
-        prompt_override: promptOverride || undefined,
+        prompt_override: promptOverride,
         taxonomy: taxonomy || undefined,
         titles_per_request: titlesPerRequest,
         is_dry_run: state.is_dry_run,
@@ -107,7 +121,7 @@ export default function IndexRoute() {
     } catch (err) {
       const error = err as { code?: string; message?: string; details?: { error?: { code?: string; reset_date?: string } } };
       const errorMessage = error.message || "Failed to submit job";
-      void (error.details?.error?.code || error.code); // Acknowledge code but don't use it
+      void (error.details?.error?.code || error.code);
       pollFailed(state.toolState.preview.job_id, errorMessage);
     }
   };
@@ -122,6 +136,8 @@ export default function IndexRoute() {
   const handleRetry = () => {
     reset();
   };
+
+  const isFormLocked = ["previewing", "submitting"].includes(state.toolState.kind);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -140,15 +156,80 @@ export default function IndexRoute() {
           {/* Input area */}
           <InputArea onInput={handleInputLoad} />
 
+          {/* Row subset selector */}
+          <RowSubsetSelector
+            mode={state.row_subset_mode}
+            n={state.row_subset_n}
+            onModeChange={setRowSubsetMode}
+            onNChange={setRowSubsetN}
+          />
+
           {/* Taxonomy input */}
           <TaxonomyInput
             value={taxonomy}
             onChange={setTaxonomy}
-            placeholder="Enter optional taxonomy (one category per line)"
             label="Allowed categories (one per line)"
             id="taxonomy"
-            rows={10}
+            rows={6}
           />
+
+          {/* Prompt & examples area (spec section 3a) */}
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="system-prompt" className="text-sm font-medium">
+                  System prompt
+                </Label>
+                {systemPrompt !== DEFAULT_SYSTEM_PROMPT && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSystemPrompt(DEFAULT_SYSTEM_PROMPT)}
+                  >
+                    Reset to default
+                  </Button>
+                )}
+              </div>
+              <Textarea
+                id="system-prompt"
+                value={systemPrompt}
+                onChange={(e) => setSystemPrompt(e.target.value)}
+                rows={8}
+                className="font-mono text-sm max-h-64 overflow-y-auto"
+                style={{ fieldSizing: "fixed" } as React.CSSProperties}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="few-shots" className="text-sm font-medium">
+                  Few-shot examples
+                </Label>
+                {fewShots !== DEFAULT_FEW_SHOTS && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setFewShots(DEFAULT_FEW_SHOTS)}
+                  >
+                    Reset to default
+                  </Button>
+                )}
+              </div>
+              <Textarea
+                id="few-shots"
+                value={fewShots}
+                onChange={(e) => setFewShots(e.target.value)}
+                rows={8}
+                className="font-mono text-sm max-h-64 overflow-y-auto"
+                style={{ fieldSizing: "fixed" } as React.CSSProperties}
+              />
+            </div>
+
+            {/* Prompt review */}
+            <PromptReviewPanel prompt={systemPrompt} fewShots={fewShots} />
+          </div>
 
           {/* Advanced panel */}
           <AdvancedPanel
@@ -156,19 +237,39 @@ export default function IndexRoute() {
             onThresholdChange={setThreshold}
             titlesPerRequest={titlesPerRequest}
             onTitlesPerRequestChange={setTitlesPerRequest}
-            promptOverride={promptOverride}
-            onPromptOverrideChange={setPromptOverride}
             isDryRun={state.is_dry_run}
-            onDryRunChange={() => {
-              // This would need to dispatch an action to update the state
-              // For now, this is a placeholder since we don't have a dispatch for this
-            }}
+            onDryRunChange={setDryRun}
           />
 
-          {/* Preview button (shown in input_loaded state) */}
-          {state.toolState.kind === "input_loaded" && (
+          {/* Preview button */}
+          {(state.toolState.kind === "idle" || state.toolState.kind === "input_loaded") && (
             <div className="flex justify-end">
-              <Button onClick={handlePreview}>Preview clusters</Button>
+              <Button
+                onClick={handlePreview}
+                disabled={state.toolState.kind === "idle" || isFormLocked}
+              >
+                Preview clusters
+              </Button>
+            </div>
+          )}
+
+          {/* Previewing spinner */}
+          {state.toolState.kind === "previewing" && (
+            <div className="flex justify-end">
+              <Button disabled>
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                Previewing...
+              </Button>
+            </div>
+          )}
+
+          {/* Preview error */}
+          {previewError && state.toolState.kind !== "previewing" && (
+            <div role="alert" className="rounded-md border border-destructive bg-destructive/10 p-4 text-sm text-destructive">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="h-4 w-4" />
+                <span>{previewError}</span>
+              </div>
             </div>
           )}
 
@@ -177,17 +278,17 @@ export default function IndexRoute() {
             <div className="space-y-4">
               <Card className="p-6 space-y-4">
                 <div className="flex flex-wrap items-center gap-2 text-sm">
-                  <span className="font-medium">{state.toolState.preview.total_rows.toLocaleString()} →</span>
-                  <span className="font-medium">{state.toolState.preview.exact_unique_rows.toLocaleString()} uniques →</span>
+                  <span className="font-medium">{state.toolState.preview.total_rows.toLocaleString()} &rarr;</span>
+                  <span className="font-medium">{state.toolState.preview.exact_unique_rows.toLocaleString()} uniques &rarr;</span>
                   <span className="font-medium">{state.toolState.preview.cluster_count.toLocaleString()} clusters</span>
-                  <span className="text-muted-foreground">·</span>
+                  <span className="text-muted-foreground">&middot;</span>
                   <span className="font-medium">est ${state.toolState.preview.est_cost_usd.toFixed(2)}</span>
                 </div>
 
                 {state.toolState.preview.total_input_rows !== undefined &&
                   state.toolState.preview.selected_rows !== undefined && (
                   <div className="text-sm text-muted-foreground">
-                    Partial run: {state.toolState.preview.total_input_rows.toLocaleString()} total rows → {state.toolState.preview.selected_rows.toLocaleString()} selected
+                    Partial run: {state.toolState.preview.total_input_rows.toLocaleString()} total rows &rarr; {state.toolState.preview.selected_rows.toLocaleString()} selected
                   </div>
                 )}
 
@@ -273,12 +374,6 @@ export default function IndexRoute() {
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t py-6">
-        <div className="max-w-4xl mx-auto px-4 text-center text-sm text-muted-foreground">
-          Nomenclator · v1.0 · built for a single operator · quis custodiet ipsos custodes?
-        </div>
-      </footer>
     </div>
   );
 }
