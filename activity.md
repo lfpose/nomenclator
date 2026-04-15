@@ -2,12 +2,22 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 34
-**Current Task:** P05-06
+**Tasks Completed:** 35
+**Current Task:** P05-07
 
 ---
 
 ## Session Log
+
+### 2026-04-15 — P05-07: Straggler detection
+- Extended `backend/app/anthropic/response_parser.py` with `StragglerAnalysis` dataclass and `analyze_stragglers()` function
+- `StragglerAnalysis` is a frozen dataclass with fields: present_ids, missing_ids, extra_ids, results_by_id
+- `analyze_stragglers()` compares expected IDs with returned IDs in ToolOutput, identifying present, missing, and extra IDs
+- Added import for `TitleResult` to support type annotation in results_by_id
+- Created `backend/tests/anthropic/test_stragglers.py` with 5 assertions covering all scenarios: all present, some missing, extra IDs, results_by_id filtering, empty response
+- Fixed unused import flagged by ruff (removed StragglerAnalysis from test imports)
+- Test: `cd backend && uv run pytest tests/anthropic/test_stragglers.py -v` — **PASS** (5 tests)
+- Also verified: `cd backend && uv run ruff check app/anthropic/response_parser.py tests/anthropic/test_stragglers.py` — **PASS**
 
 ### 2026-04-15 — P01-01: Create directory structure
 - Created all backend and frontend directories per canonical layout in `plan/00-index.md`
