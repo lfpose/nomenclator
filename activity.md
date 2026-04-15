@@ -323,3 +323,14 @@
 - Fixed unused ClusterResult import in test file
 - Test: `cd backend && uv run pytest tests/cluster/test_pipeline.py -k run_clustering -v` — **PASS** (6 tests)
 - Also verified: `cd backend && uv run pytest tests/cluster/ -v` — **PASS** (32 tests total)
+
+### 2026-04-15 — P04-07: Determinism guarantee
+- Created `backend/tests/cluster/test_determinism.py` with 2 assertions testing determinism guarantees for `run_clustering`
+- Implemented `_generate_synthetic_spanish_titles()` function that generates 500 synthetic Spanish job titles with realistic variants (role types, departments, accent marks, case, whitespace, gender variants)
+- Implemented `_results_are_identical()` to check byte-identical results (same cluster IDs, representatives, order, member order)
+- Implemented `_clusters_are_equivalent()` to check cluster equivalence (same partition of rows, even if cluster IDs or member order differ)
+- `test_run_clustering_deterministic_same_input`: runs clustering twice on same input, asserts byte-identical results
+- `test_run_clustering_deterministic_shuffled_input`: runs clustering on shuffled input (preserving row_index values), asserts equivalent partition of rows
+- Fixed unused Counter import flagged by ruff
+- Test: `cd backend && uv run pytest tests/cluster/test_determinism.py -v` — **PASS** (2 tests)
+- Also verified: `cd backend && uv run ruff check tests/cluster/test_determinism.py` — **PASS**
