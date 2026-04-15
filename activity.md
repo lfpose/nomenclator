@@ -2,8 +2,8 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 31
-**Current Task:** P05-03
+**Tasks Completed:** 32
+**Current Task:** P05-04
 
 ---
 
@@ -371,3 +371,17 @@
 - Fixed unused pytest import flagged by ruff
 - Test: `cd backend && uv run pytest tests/anthropic/test_tool_schema.py -v` — **PASS** (5 tests)
 - Also verified: ruff check passes
+
+### 2026-04-15 — P05-03: System prompt content
+- Created `backend/app/migrations/002_seed_prompt.sql` with UPDATE statement to replace PLACEHOLDER system_prompt and empty few_shots
+- System prompt contains full Spanish instructions from spec/08-prompt-spec.md for normalizing job titles
+- Includes strict rules: no inventing titles, English→Spanish translation, drop corporate/location suffixes, maintain capitalization, never omit entries
+- Embedded 8 few-shot examples covering interesting cases: English→Spanish, dropped stop-words, good form, LATAM suffix, gender-neutral, function→category mapping
+- Created `backend/tests/test_seed_prompt.py` with 3 assertions:
+  - test_seed_prompt_system_prompt_contains_spanish_keywords: checks for "normalizar", "masculina", "femenina"
+  - test_seed_prompt_has_eight_few_shots: validates JSON array has exactly 8 examples
+  - test_seed_prompt_few_shots_have_required_fields: each item has input, male_es, female_es, category
+- Fixed unused import (get_connection) flagged by ruff in test file
+- Validated SQL migration by running it on temporary database: all checks pass
+- Test: `cd backend && uv run pytest tests/test_seed_prompt.py -v` — **PASS** (3 tests)
+- Also verified: ruff check passes on test file

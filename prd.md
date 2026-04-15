@@ -522,7 +522,7 @@ Key features: prompt review (optional AI validation), row subset (test with firs
       "Verify: cd backend && uv run pytest tests/test_seed_prompt.py -v"
     ],
     "test": "cd backend && uv run pytest tests/test_seed_prompt.py -v",
-    "passes": false
+    "passes": true
   },
   {
     "id": "P05-04",
