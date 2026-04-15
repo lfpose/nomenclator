@@ -447,3 +447,43 @@ def commit_job(
 
     # Step 13: Transition job to submitted
     transition(conn, job_id, "submitted", reason="commit")
+
+
+def cancel_job(
+    conn: "Connection",
+    client,  # AnthropicBatchClient (protocol)
+    job_id: str,
+) -> None:
+    """Cancel a job in a cancellable state.
+
+    Args:
+        conn: Database connection
+        client: Anthropic batch client (real or fake)
+        job_id: ID of the job to cancel
+
+    Raises:
+        ValueError: If job not found or not in a cancellable state
+    """
+    # Step 1: Validate job exists
+    job = jobs_dao.get_job(conn, job_id)
+    if job is None:
+        raise ValueError("job_not_found")
+
+    # Step 2: Validate job is in cancellable state
+    if job.status not in {"queued", "submitted", "polling", "retrying"}:
+        raise ValueError(
+            f"invalid_state: job must be in queued, submitted, polling, or retrying state, got {job.status}"
+        )
+
+    # Step 3: Cancel any non-terminal batches upstream
+    batches = batches_dao.list_batches_for_job(conn, job_id)
+    for batch in batches:
+        if batch.status not in {"ended", "canceled", "expired"}:
+            try:
+                client.cancel_batch(batch.id)
+            except Exception:
+                # Best effort - swallow errors from Anthropic cancel
+                pass
+
+    # Step 4: Transition job to cancelled
+    transition(conn, job_id, "cancelled", reason="operator_cancel")

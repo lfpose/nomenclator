@@ -2,12 +2,30 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 49
-**Current Task:** P07-06
+**Tasks Completed:** 50
+**Current Task:** P07-07
 
 ---
 
 ## Session Log
+
+### 2026-04-15 — P07-07: Cancel job
+- Extended `backend/app/jobs/service.py` with `cancel_job(conn, client, job_id) -> None` function
+- Implementation validates job exists, raises ValueError('job_not_found') if not
+- Validates job is in cancellable state (queued, submitted, polling, retrying), raises ValueError('invalid_state') otherwise
+- Cancels non-terminal batches via `client.cancel_batch()` for batches not in 'ended', 'canceled', or 'expired' status
+- Swallows all exceptions from Anthropic cancel (best effort approach)
+- Transitions job to 'cancelled' state via transition function with reason='operator_cancel'
+- Created `backend/tests/jobs/test_cancel.py` with 5 assertions:
+  - `test_cancel_transitions_to_cancelled`: verifies job transitions to cancelled state
+  - `test_cancel_calls_anthropic_cancel_for_inflight_batches`: verifies Anthropic cancel is called for inflight batches
+  - `test_cancel_ignores_already_ended_batches`: verifies already ended batches are ignored
+  - `test_cancel_raises_on_terminal_state`: verifies ValueError for terminal states (e.g., cancelled)
+  - `test_cancel_swallows_anthropic_cancel_errors`: verifies errors from Anthropic cancel are swallowed
+- Fixed unused variable flagged by ruff (batch_id in test_cancel_swallows_anthropic_cancel_errors)
+- Test: `cd backend && uv run pytest tests/jobs/test_cancel.py -v` — **PASS** (5 tests)
+- Also verified: `cd backend && uv run ruff check app/jobs/service.py tests/jobs/test_cancel.py` — **PASS**
+- All 55 job tests still pass
 
 ### 2026-04-15 — P07-06: Commit job
 - Extended `backend/app/jobs/service.py` with `commit_job(conn, client, job_id, *, prompt_override, taxonomy, titles_per_request) -> None` function
