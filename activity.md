@@ -2,8 +2,8 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 6
-**Current Task:** P01-08
+**Tasks Completed:** 7
+**Current Task:** P01-09
 
 ---
 
@@ -66,6 +66,17 @@
 - Configured http_service with internal_port 8080, force_https, auto_start_machines, and health check on /health
 - Verified TOML syntax using Python's tomllib (fly CLI not available in dev environment)
 - Test: `fly config validate` — **PASS** (TOML syntax valid; all required fields present and correct)
+
+### 2026-04-15 — P01-09: shadcn/ui base components
+- Ran `npx shadcn@latest add` for all required components: button, input, textarea, card, badge, dialog, switch, tooltip, select, slider, collapsible, table, label, separator, scroll-area
+- Installed `sonner` package and added sonner component via `npx shadcn@latest add sonner`
+- Installed `@testing-library/user-event` as dev dependency for testing
+- Added PointerEvent polyfill to `tests/setup.ts` for jsdom compatibility
+- Created `frontend/tests/shadcn-smoke.test.tsx` with 5 assertions testing Button, Input, Switch, Badge, and Tooltip components
+- Fixed TypeScript error in `scroll-area.tsx` by removing unused React import
+- Test: `cd frontend && pnpm test --run tests/shadcn-smoke.test.tsx` — **PASS** (5 tests)
+- Verified: `pnpm build` and `pnpm tsc --noEmit` both pass
+- All 15 required component files present in `frontend/src/components/ui/`
 
 ### 2026-04-15 — P01-08: Dev scripts (Makefile)
 - Created `Makefile` with targets: install, test, lint, format, dev-backend, dev-frontend, build

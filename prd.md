@@ -135,7 +135,7 @@ Key features: prompt review (optional AI validation), row subset (test with firs
       "Verify: cd frontend && pnpm test --run tests/shadcn-smoke.test.tsx"
     ],
     "test": "cd frontend && pnpm test --run tests/shadcn-smoke.test.tsx",
-    "passes": false
+    "passes": true
   },
   {
     "id": "P02-01",
