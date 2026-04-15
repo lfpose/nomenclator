@@ -9,6 +9,23 @@
 
 ## Session Log
 
+### 2026-04-15 — P14-12: Download button
+- Created `frontend/src/components/DownloadButton.tsx` with anchor element for CSV download:
+  - Accepts jobId and status props
+  - Returns null when status is not 'completed' (hidden)
+  - Renders anchor with href=`/jobs/${jobId}/download` for completed jobs
+  - Includes download attribute to trigger browser download
+  - Styled with Tailwind classes for primary button appearance
+  - Text label: "Download CSV"
+- Created `frontend/tests/download.test.tsx` with 3 assertions:
+  - `button href is /jobs/:id/download`: verifies anchor has correct href attribute
+  - `button hidden when not completed`: verifies component returns null when status is not 'completed'
+  - `button has download attribute`: verifies anchor has download attribute
+- All tests use render and screen from @testing-library/react
+- Test: `cd frontend && pnpm test --run tests/download.test.tsx` — **PASS** (3 tests)
+- Also verified: `cd frontend && pnpm tsc --noEmit` — **PASS**
+- Also verified: `cd frontend && pnpm build` — **PASS**
+
 ### 2026-04-15 — P14-11: Cancel action
 - Verified that JobStatusPanel.tsx already had confirmation dialog implemented from P14-09 with:
   - `showCancelConfirm` state to track dialog visibility
