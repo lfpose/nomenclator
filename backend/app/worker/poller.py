@@ -168,14 +168,19 @@ class Worker:
         # Are all batches for this job ended?
         batches = batches_dao.list_batches_for_job(conn, job.id)
         if not all(b.status in {"ended", "canceled", "expired"} for b in batches):
+            log.debug(f"_finalize_if_done: job {job.id} has non-terminal batches")
             return
+
+        log.debug(f"_finalize_if_done: job {job.id} all batches ended, status={job.status}")
 
         # If job is still submitted, transition to polling first
         # (may have skipped the earlier transition due to all batches already being ended)
         if job.status == "submitted":
             transition(conn, job.id, "polling", reason="all_batches_ended")
+            log.debug(f"_finalize_if_done: job {job.id} transitioned from submitted to polling")
 
         unresolved = clusters_dao.count_unresolved_clusters(conn, job.id)
+        log.debug(f"_finalize_if_done: job {job.id} has {unresolved} unresolved clusters")
         if unresolved == 0:
             # Compute job counts before completing
             total_rows = len(clusters_dao.list_clusters(conn, job.id))  # Simplified: clusters = rows in our test setup
@@ -188,9 +193,11 @@ class Worker:
 
         # Need a retry or give up
         current_round = max((b.retry_round for b in batches), default=0)
+        log.debug(f"_finalize_if_done: job {job.id} retry_round={current_round}, unresolved={unresolved}")
         if current_round >= 3:
             self._flag_remaining_and_complete(conn, job, error_code="max_retries_exceeded")
             return
+        log.info(f"_finalize_if_done: job {job.id} submitting retry round {current_round + 1}")
         await self._submit_retry(conn, job, current_round + 1)
 
     def _complete_job(self, conn, job, total_rows=0, error_rows=0) -> None:
@@ -250,6 +257,93 @@ class Worker:
     async def _submit_retry(self, conn, job, new_round: int) -> None:
         """Submit a retry batch for unresolved clusters.
 
-        This is a placeholder for now; will be implemented in P08-06.
+        Builds a new batch containing only unresolved clusters with halved
+        titles_per_request, submits it to Anthropic, and updates job status.
+
+        Args:
+            conn: Database connection
+            job: Job object with retrying status
+            new_round: New retry round number (1-based)
         """
-        raise NotImplementedError("_submit_retry will be implemented in P08-06")
+        from ..dao import clusters as clusters_dao, batches as batches_dao
+        from ..dao import batch_requests as br_dao, task_templates as tt_dao
+        from ..anthropic.request_builder import (
+            build_request_params, TitleInput, build_system_prompt
+        )
+        from ..jobs.service import transition, check_cap
+        from ..pricing import estimate_cost
+
+        log.info(f"_submit_retry: job {job.id} round={new_round}")
+
+        # Get unresolved clusters (no answer and no error)
+        unresolved = [
+            c for c in clusters_dao.list_clusters(conn, job.id)
+            if c.male_es is None and c.error is None
+        ]
+        log.debug(f"_submit_retry: job {job.id} found {len(unresolved)} unresolved clusters")
+
+        # Halve TPR for retry (at least 1)
+        new_tpr = max(1, job.titles_per_request // (2 ** new_round))
+
+        # Cost check - block retry if cap exceeded
+        est = estimate_cost(len(unresolved), new_tpr)
+        cap = check_cap(conn, est, is_dry_run=job.is_dry_run)
+        if not cap.ok:
+            self._flag_remaining_and_complete(conn, job, error_code="spend_cap_exceeded")
+            return
+
+        # Transition to retrying state
+        transition(conn, job.id, "retrying", reason=f"stragglers_round_{new_round}")
+
+        # Build system prompt from template
+        template = tt_dao.get_template(conn, job.task_template_id)
+        system_prompt = build_system_prompt(template.system_prompt, template.few_shots)
+
+        # Build request bodies for each chunk of unresolved clusters
+        request_bodies = []
+        request_cluster_groups = []
+        for chunk_start in range(0, len(unresolved), new_tpr):
+            chunk = unresolved[chunk_start : chunk_start + new_tpr]
+            titles = [
+                TitleInput(id=f"t{i+1:03d}", title=c.representative_original)
+                for i, c in enumerate(chunk)
+            ]
+            req = build_request_params(
+                titles=titles,
+                system_prompt=system_prompt,
+                taxonomy=job.user_taxonomy,
+                titles_per_request=len(chunk),
+            )
+            custom_id = f"{job.id}-r{new_round}-c{chunk_start}"
+            request_bodies.append({"custom_id": custom_id, "params": req})
+            request_cluster_groups.append((custom_id, [c.id for c in chunk]))
+
+        # Submit batch to Anthropic
+        batch_id = self._client.submit_batch(request_bodies)
+
+        # Find parent batch (most recent round before this one)
+        prev_batches = batches_dao.list_batches_for_job(conn, job.id)
+        parent_id = max(prev_batches, key=lambda b: b.retry_round).id
+
+        # Insert batch row with parent_batch_id
+        batches_dao.insert_batch(
+            conn,
+            id=batch_id,
+            job_id=job.id,
+            retry_round=new_round,
+            parent_batch_id=parent_id,
+            status="in_progress",
+            request_count=len(request_bodies),
+        )
+
+        # Insert batch_requests rows
+        for custom_id, cluster_ids in request_cluster_groups:
+            br_dao.insert_request(
+                conn,
+                id=custom_id,
+                batch_id=batch_id,
+                cluster_ids=cluster_ids,
+            )
+
+        # Transition to submitted state
+        transition(conn, job.id, "submitted", reason=f"retry_round_{new_round}_submitted")

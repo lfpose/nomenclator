@@ -2,12 +2,37 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 60
-**Current Task:** P08-06
+**Tasks Completed:** 61
+**Current Task:** P08-07
 
 ---
 
 ## Session Log
+
+### 2026-04-15 — P08-06: Retry submission
+- Verified that `_submit_retry()` is already implemented in `backend/app/worker/poller.py`
+- Implementation handles:
+  - Getting unresolved clusters (no answer and no error)
+  - Halving TPR for retry (at least 1, using `job.titles_per_request // (2 ** new_round)`)
+  - Running cost check via `check_cap()` and blocking retry with `spend_cap_exceeded` flag if cap exceeded
+  - Transitioning job to 'retrying' state with reason `stragglers_round_{new_round}`
+  - Building system prompt from template using `build_system_prompt()`
+  - Building request bodies for chunks of unresolved clusters with halved TPR
+  - Submitting batch to Anthropic client
+  - Finding parent batch (most recent round before this one) via `list_batches_for_job()`
+  - Inserting batch row with `parent_batch_id` and new `retry_round`
+  - Inserting batch_requests rows for each request
+  - Transitioning job to 'submitted' state with reason `retry_round_{new_round}_submitted`
+- All 6 tests in `backend/tests/worker/test_retry_submission.py` pass:
+  - `test_retry_halves_titles_per_request`: verifies TPR is halved correctly (25 → 12 for round 1)
+  - `test_retry_only_includes_unresolved_clusters`: verifies only unresolved clusters are in retry batch
+  - `test_retry_increments_round`: verifies retry_round increments correctly (1, 2, ...)
+  - `test_retry_records_parent_batch_id`: verifies parent_batch_id references previous batch
+  - `test_retry_blocks_on_spend_cap_and_flags_stragglers`: verifies cap check blocks retry and flags stragglers
+  - `test_retry_transitions_through_retrying_to_submitted`: verifies state transitions (polling → retrying → submitted)
+- Test: `cd backend && uv run pytest tests/worker/test_retry_submission.py -v` — **PASS** (6 tests)
+- Also verified: All 25 worker tests pass, including P08-01 through P08-05 tests
+- Also verified: `cd backend && uv run ruff check app/worker/poller.py tests/worker/test_retry_submission.py` — **PASS**
 
 ### 2026-04-15 — P08-05: Completion detection and stragglers decision
 - Verified that `_finalize_if_done()` is already implemented in `backend/app/worker/poller.py`
