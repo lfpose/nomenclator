@@ -433,7 +433,7 @@ Key features: prompt review (optional AI validation), row subset (test with firs
       "Verify: cd backend && uv run pytest tests/cluster/test_pipeline.py::test_build_components -v"
     ],
     "test": "cd backend && uv run pytest tests/cluster/test_pipeline.py::test_build_components -v",
-    "passes": false
+    "passes": true
   },
   {
     "id": "P04-05",

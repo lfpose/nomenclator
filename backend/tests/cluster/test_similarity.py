@@ -1,6 +1,5 @@
 import random
 
-import numpy as np
 
 from app.cluster.similarity import compute_similarity, len_ratio
 

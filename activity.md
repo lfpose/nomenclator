@@ -2,8 +2,8 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 25
-**Current Task:** P04-04
+**Tasks Completed:** 26
+**Current Task:** P04-05
 
 ---
 
@@ -273,3 +273,19 @@
 - All tests pass (9 total in test_similarity.py)
 - Verified ruff check passes
 - Test: `cd backend && uv run pytest tests/cluster/test_similarity.py -v` — **PASS** (9 tests, 5 for compute_similarity)
+
+### 2026-04-15 — P04-04: Connected components from similarity
+- Created `backend/app/cluster/pipeline.py` with `build_components(strings, matrix, threshold, min_len_ratio=0.6)` function
+- Implementation uses UnionFind to merge pairs that satisfy BOTH threshold AND length-ratio gate conditions
+- Pairs are merged only if matrix[i][j] >= threshold AND len_ratio(strings[i], strings[j]) >= min_len_ratio
+- Created `backend/tests/cluster/test_pipeline.py` with 5 assertions:
+  - test_build_components_singleton_input: 1 string → 1 component
+  - test_build_components_two_similar_merged: similar titles merge into 1 component
+  - test_build_components_two_unrelated_separate: unrelated titles stay separate
+  - test_build_components_length_ratio_blocks_merge: short/long pair stays separate despite high token similarity
+  - test_build_components_transitive_merging: transitive closure works (a~b, b~c → {a,b,c})
+- Fixed transitive test to use strings with good length ratios ("jefe compras", "jefe de compras", "jefe ventas")
+- Added TYPE_CHECKING import for numpy type hint to avoid runtime import
+- Removed unused pytest import from test file
+- All 5 tests pass, ruff check passes
+- Test: `cd backend && uv run pytest tests/cluster/test_pipeline.py -v` — **PASS** (5 tests)
