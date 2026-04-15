@@ -2,8 +2,8 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 21
-**Current Task:** P03-07
+**Tasks Completed:** 22
+**Current Task:** P03-08
 
 ---
 
@@ -237,3 +237,12 @@
 - CSV contains Spanish job titles with various accent/case/whitespace variants
 - Created `backend/tests/csv/test_csv_smoke.py` with 3 assertions: ingest under 2s, dedup reduces by 30%+, all originals preserved
 - Test: `cd backend && uv run pytest tests/csv/test_csv_smoke.py -v` — **PASS** (3 tests, 0.61s total)
+
+### 2026-04-15 — P03-07: Row subset selection
+- Created `backend/app/csv_io/subset.py` with `apply_row_subset()` function
+- Supports three modes: 'all', 'first_n', 'random_n'
+- 'random_n' mode uses job_id (without hyphens) as hex seed for deterministic random sampling
+- Returns subset of rows preserving original row_index values
+- Created `backend/tests/csv/test_subset.py` with 8 assertions: all returns all, first_n returns first n, first_n preserves index, random_n returns exactly n, random_n deterministic with same job_id, random_n different with different job_id, n >= total returns all, preserves original indices
+- Fixed tests to use hex-like UUID job IDs for compatibility with hex seed conversion
+- Test: `cd backend && uv run pytest tests/csv/test_subset.py -v` — **PASS** (8 tests)
