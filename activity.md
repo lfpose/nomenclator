@@ -2,8 +2,8 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 76
-**Current Task:** P10-09 (completed)
+**Tasks Completed:** 77
+**Current Task:** P11-01 (completed)
 
 ---
 
@@ -54,6 +54,26 @@
 - Fixed test ordering issue by using 1.1 second delay instead of 0.01 seconds (unixepoch() has 1-second precision, so 0.01s delay was insufficient to create different timestamps)
 - Test: `cd backend && uv run pytest tests/api/test_api_list_jobs.py -v` — **PASS** (4 tests)
 - Also verified: `cd backend && uv run ruff check app/api/jobs.py app/dao/jobs.py tests/api/test_api_list_jobs.py` — **PASS**
+
+### 2026-04-15 — P11-01: Export query function
+- Created `backend/app/csv_io/exporter.py` with `ExportRow` frozen dataclass and `fetch_export_rows()` function
+- `ExportRow` contains fields: original, male_es, female_es, category, error
+- `fetch_export_rows()` runs SQL JOIN query that returns all job rows for a job with cluster answers
+- Query uses LEFT JOIN to include rows without clusters (cluster_id is NULL)
+- COALESCE converts NULL cluster answers to empty strings for consistent output
+- Results are ordered by row_index ASC to preserve input order
+- Created `backend/tests/csv/test_export_query.py` with 5 assertions:
+  - `test_export_rows_in_row_index_order`: verifies rows are returned in row_index order
+  - `test_export_populated_row_has_answers`: verifies a row with a populated cluster has answers
+  - `test_export_unresolved_cluster_returns_empty_answers`: verifies a row with an unresolved cluster returns empty answers
+  - `test_export_errored_cluster_returns_error_code`: verifies a row with an errored cluster returns the error code
+  - `test_export_missing_cluster_id_returns_empty_row_not_dropped`: verifies a row with NULL cluster_id still appears with 4 empty strings
+- Fixed issues:
+  - Added required task_template_id field when inserting into jobs table
+  - Added created_at field when inserting into jobs table
+  - Added required fields (representative_original, normalized_key, member_count) when inserting into clusters table
+- Test: `cd backend && uv run pytest tests/csv/test_export_query.py -v` — **PASS** (5 tests)
+- Also verified: `cd backend && uv run ruff check app/csv_io/exporter.py tests/csv/test_export_query.py` — **PASS**
 
 ---
 
