@@ -13,6 +13,9 @@ def parse_csv(raw: bytes) -> list[str]:
         text = raw.decode("utf-8-sig")  # strips BOM
     except UnicodeDecodeError:
         raise CSVError("encoding_invalid", "File is not UTF-8.")
+    
+    if not text.strip():
+        raise CSVError("input_empty", "No data found in CSV file.")
 
     sample = text[:2048]
     comma = sample.count(",")
@@ -39,6 +42,7 @@ def parse_csv(raw: bytes) -> list[str]:
             keep_default_na=False,
             na_values=[],
             skip_blank_lines=True,
+            header=None,
         )
     except Exception as e:
         raise CSVError("parse_failed", f"Failed to parse CSV: {e}")

@@ -1,4 +1,7 @@
+"""Test CSV parser functionality."""
+
 import pytest
+
 from app.csv_io.parser import CSVError, parse_csv
 
 
@@ -53,10 +56,10 @@ def test_parse_multi_column_reads_only_first():
 
 
 def test_parse_empty_raises_input_empty():
-    """Test that CSV with header only raises input_empty error."""
-    with open("tests/fixtures/csv/empty_data.csv", "rb") as f:
-        with pytest.raises(CSVError) as exc_info:
-            parse_csv(f.read())
+    """Test that CSV with no data raises input_empty error."""
+    # Create an empty CSV
+    with pytest.raises(CSVError) as exc_info:
+        parse_csv(b"")
     assert exc_info.value.code == "input_empty"
 
 
@@ -71,7 +74,7 @@ def test_parse_non_utf8_raises_encoding_invalid():
 def test_parse_huge_raises_input_too_large():
     """Test that CSV with > 50,000 rows raises input_too_large error."""
     # Generate a CSV with 50,001 rows
-    lines = ["title"] + [f"Title {i}" for i in range(1, 50002)]
+    lines = [f"Title {i}" for i in range(50001)]
     csv_bytes = "\n".join(lines).encode("utf-8")
     with pytest.raises(CSVError) as exc_info:
         parse_csv(csv_bytes)
@@ -82,7 +85,7 @@ def test_parse_huge_raises_input_too_large():
 def test_parse_unknown_delimiter_raises_delimiter_unknown():
     """Test that CSV with unknown delimiter raises delimiter_unknown error."""
     # CSV with pipe delimiter (not comma or semicolon)
-    csv_bytes = "title|department\nJefe de Compras|Compras".encode("utf-8")
+    csv_bytes = "Jefe de Compras|Compras\nDirector IT|Marketing".encode("utf-8")
     with pytest.raises(CSVError) as exc_info:
         parse_csv(csv_bytes)
     assert exc_info.value.code == "delimiter_unknown"

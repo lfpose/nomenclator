@@ -2,12 +2,41 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 46
-**Current Task:** P07-03
+**Tasks Completed:** 47
+**Current Task:** P07-04
 
 ---
 
 ## Session Log
+
+### 2026-04-15 — P07-04: Create job from preview
+- Extended `backend/app/jobs/service.py` with `create_preview_job(conn, *, file_bytes, text, threshold, titles_per_request) -> PreviewResult` function
+- Added `PreviewResult` frozen dataclass with fields: job_id, total_rows, exact_unique_rows, cluster_count, largest_cluster_size, est_cost_usd, top_clusters, warnings
+- Implementation orchestrates full pipeline: ingest → cluster → persist
+- Creates job in 'draft' state with task_template_id='job_titles_es', fuzzy_threshold, and titles_per_request
+- Bulk-inserts job rows via `job_rows_dao.bulk_insert_rows()`
+- Inserts clusters via `clusters_dao.insert_cluster()` and assigns cluster_id to rows via `job_rows_dao.assign_cluster()`
+- Marks representative row for each cluster (first row with matching original text)
+- Computes cost estimate via `estimate_job_cost()` and updates job counts via `jobs_dao.update_job_counts()`
+- Transitions job to 'preview' state and returns PreviewResult with top 10 largest clusters sorted by member_count
+- Emits warnings for clusters larger than 50 members (type='large_cluster')
+- Created `backend/tests/jobs/test_create_from_preview.py` with 8 assertions:
+  - `test_preview_creates_job_with_status_preview`: verifies job status is 'preview'
+  - `test_preview_writes_all_job_rows`: verifies all input rows are written to job_rows
+  - `test_preview_writes_clusters_with_representatives`: verifies clusters are written with representative_original values
+  - `test_preview_assigns_cluster_id_to_every_row`: verifies every row gets a cluster_id assigned
+  - `test_preview_computes_cost_estimate`: verifies cost estimate is computed correctly
+  - `test_preview_returns_top_10_largest_clusters`: verifies top clusters are sorted by member_count descending
+  - `test_preview_emits_large_cluster_warning_above_50`: verifies warnings for clusters larger than 50
+  - `test_preview_propagates_ingest_errors`: verifies CSVError is propagated for rows that normalize to empty
+- Fixed `backend/app/csv_io/parser.py` to use `header=None` instead of treating first row as header (Nomenclator expects raw job title data without headers)
+- Updated fixture CSV files to remove headers (basic_comma.csv, basic_semicolon.csv, multi_column.csv, with_bom.csv, realistic_13k.csv.gz)
+- Updated parser tests to not expect header behavior (test_parse_empty_raises_input_empty, test_parse_huge_raises_input_too_large, test_parse_unknown_delimiter_raises_delimiter_unknown)
+- Updated ingest tests to not use headers (test_ingest_csv_bytes_returns_indexed_triples, test_ingest_blank_row_raises_input_contains_blank_rows, test_ingest_preserves_original_untouched)
+- Added empty string check to parser to raise 'input_empty' for truly empty CSV files
+- Test: `cd backend && uv run pytest tests/jobs/test_create_from_preview.py -v` — **PASS** (8 tests)
+- Also verified: `cd backend && uv run ruff check app/jobs/service.py tests/jobs/test_create_from_preview.py app/csv_io/parser.py` — **PASS**
+- All 42 CSV tests pass with updated fixture files
 
 ### 2026-04-15 — P07-03: Single-concurrency check
 - Extended `backend/app/jobs/service.py` with `ConcurrencyError` exception class and `assert_no_running_job()` function

@@ -4,7 +4,7 @@ import pytest
 
 
 def test_ingest_csv_bytes_returns_indexed_triples():
-    csv_content = b"title\nJefe de Compras\nGerente de Ventas\nTecnico de Soporte"
+    csv_content = b"Jefe de Compras\nGerente de Ventas\nTecnico de Soporte"
     result = ingest(file_bytes=csv_content)
     assert len(result) == 3
     assert result[0] == (0, "Jefe de Compras", "jefe de compras")
@@ -23,7 +23,7 @@ def test_ingest_text_returns_indexed_triples():
 
 def test_ingest_blank_row_raises_input_contains_blank_rows():
     # Row 1 is just punctuation which normalizes to empty
-    csv_content = b"title\nJefe de Compras\n!!!\nGerente de Ventas"
+    csv_content = b"Jefe de Compras\n!!!\nGerente de Ventas"
     with pytest.raises(CSVError) as exc_info:
         ingest(file_bytes=csv_content)
     assert exc_info.value.code == "input_contains_blank_rows"
@@ -32,7 +32,7 @@ def test_ingest_blank_row_raises_input_contains_blank_rows():
 
 
 def test_ingest_preserves_original_untouched():
-    csv_content = b"title\n  JEFE  DE  COMPRAS  \n  Gerente  de  Ventas  "
+    csv_content = b"  JEFE  DE  COMPRAS  \n  Gerente  de  Ventas  "
     result = ingest(file_bytes=csv_content)
     assert len(result) == 2
     # Original should preserve whitespace and case
