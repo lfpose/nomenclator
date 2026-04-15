@@ -2,8 +2,8 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 42
-**Current Task:** P06-03
+**Tasks Completed:** 43
+**Current Task:** P06-04
 
 ---
 
@@ -528,4 +528,12 @@
   - test_dry_run_deterministic_same_input_same_output: verifies same input produces identical output
 - Test: `cd backend && uv run pytest tests/anthropic/test_dry_run.py -v` — **PASS** (6 tests)
 - Also verified: `cd backend && uv run ruff check app/anthropic/dry_run.py tests/anthropic/test_dry_run.py` — **PASS**
+
+### 2026-04-15 — P06-04: Cap-check integration test (with jobs DAO)
+- Created `backend/tests/jobs/test_cap_integration.py` with 2 assertions testing cap check with multiple jobs and batches
+- `test_cap_multi_spend_scenario_pass_and_fail_boundary`: creates 3 jobs with $5, $10, $4 spend (total $19), verifies check_cap fails with est=$2 (19+2=21 > 20) and passes with est=$1 (19+1=20 exactly)
+- `test_cap_recovers_when_entries_age_out`: creates 3 jobs with spend at different times, verifies at t=29 days oldest entry still counts ($19 total, cap fails), then at t=31 days oldest entry aged out ($14 total, cap passes with est=$2)
+- Fixed boundary condition issue: at exactly t=30 days, entries at the cutoff time are excluded (uses `>` not `>=` in SQL), so test uses t=29 days for "still in window" check
+- Test: `cd backend && uv run pytest tests/jobs/test_cap_integration.py -v` — **PASS** (2 tests)
+- Also verified: `cd backend && uv run ruff check tests/jobs/test_cap_integration.py` — **PASS**
 
