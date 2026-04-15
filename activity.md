@@ -2,8 +2,8 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 44
-**Current Task:** P07-01
+**Tasks Completed:** 45
+**Current Task:** P07-02
 
 ---
 
@@ -545,6 +545,19 @@
   - test_dry_run_deterministic_same_input_same_output: verifies same input produces identical output
 - Test: `cd backend && uv run pytest tests/anthropic/test_dry_run.py -v` — **PASS** (6 tests)
 - Also verified: `cd backend && uv run ruff check app/anthropic/dry_run.py tests/anthropic/test_dry_run.py` — **PASS**
+
+### 2026-04-15 — P07-02: Job transition with logging
+- Created `backend/app/jobs/service.py` with `transition(conn, job_id, new_status, reason)` function
+- `transition()` validates the transition using `assert_allowed()` from state_machine, updates job status via `jobs_dao.update_job_status()`, and logs structured event with job_id, from, to, and reason
+- Created `backend/tests/jobs/test_transition.py` with 4 assertions:
+  - `test_transition_draft_to_preview_updates_db`: verifies job status is updated in database
+  - `test_transition_raises_on_invalid_from_state`: verifies invalid transition raises ValueError (tested draft -> completed)
+  - `test_transition_raises_on_missing_job`: verifies ValueError raised for non-existent job
+  - `test_transition_logs_structured_event`: verifies structured logging with caplog (uses getattr for 'from' keyword)
+- Fixed test to use correct DAO API: `create_job()` returns job_id string, takes `task_template_id`, `fuzzy_threshold`, `titles_per_request`
+- Fixed Python keyword issue by using `getattr(record, "from")` to access 'from' attribute from LogRecord
+- Test: `cd backend && uv run pytest tests/jobs/test_transition.py -v` — **PASS** (4 tests)
+- Also verified: `cd backend && uv run ruff check app/jobs/service.py tests/jobs/test_transition.py` — **PASS**
 
 ### 2026-04-15 — P06-04: Cap-check integration test (with jobs DAO)
 - Created `backend/tests/jobs/test_cap_integration.py` with 2 assertions testing cap check with multiple jobs and batches
