@@ -1,5 +1,5 @@
 import numpy as np
-from app.cluster.pipeline import build_components
+from app.cluster.pipeline import build_components, pick_representative
 
 
 def test_build_components_singleton_input():
@@ -71,3 +71,39 @@ def test_build_components_transitive_merging():
     assert len(result) == 1
     component = list(result.values())[0]
     assert set(component) == {0, 1, 2}
+
+
+def test_pick_representative_most_frequent_wins():
+    """Most frequent title should win regardless of length or alphabetical order."""
+    originals = ["Jefe de Compras", "Jefe de Compras", "Director"]
+    result = pick_representative(originals)
+    assert result == "Jefe de Compras"
+
+
+def test_pick_representative_tiebreak_shortest():
+    """When tied on frequency, shortest string should win."""
+    originals = ["Jefe", "Jefe", "Director", "Director"]
+    result = pick_representative(originals)
+    assert result == "Jefe"
+
+
+def test_pick_representative_tiebreak_alphabetical():
+    """When tied on frequency and length, alphabetical order should win."""
+    originals = ["Director IT", "Director RH", "Director IT", "Director RH"]
+    result = pick_representative(originals)
+    assert result == "Director IT"
+
+
+def test_pick_representative_determinism():
+    """Running twice on same input should give same result."""
+    originals = ["Jefe de Compras", "Jefe de Compras", "Director"]
+    result1 = pick_representative(originals)
+    result2 = pick_representative(originals)
+    assert result1 == result2
+
+
+def test_pick_representative_singleton():
+    """Single-item cluster should return that item."""
+    originals = ["Jefe de Compras"]
+    result = pick_representative(originals)
+    assert result == "Jefe de Compras"

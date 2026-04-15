@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import Counter
 from typing import TYPE_CHECKING
 
 from .unionfind import UnionFind
@@ -40,3 +41,28 @@ def build_components(
                 uf.union(i, j)
 
     return uf.components()
+
+
+def pick_representative(originals: list[str]) -> str:
+    """
+    Pick a representative from a cluster of original (un-normalized) titles.
+
+    Tiebreak rules (in order):
+    1. Most frequent (highest count)
+    2. Shortest length
+    3. Alphabetical order
+
+    Args:
+        originals: List of original (un-normalized) titles in this cluster
+
+    Returns:
+        The representative title string
+    """
+    counts = Counter(originals)
+    max_count = max(counts.values())
+    candidates = [s for s, c in counts.items() if c == max_count]
+    # Tiebreak: shortest length
+    min_len = min(len(s) for s in candidates)
+    candidates = [s for s in candidates if len(s) == min_len]
+    # Tiebreak: alphabetical
+    return sorted(candidates)[0]

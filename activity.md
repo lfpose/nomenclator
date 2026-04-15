@@ -2,8 +2,8 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 26
-**Current Task:** P04-05
+**Tasks Completed:** 27
+**Current Task:** P04-06
 
 ---
 
@@ -289,3 +289,16 @@
 - Removed unused pytest import from test file
 - All 5 tests pass, ruff check passes
 - Test: `cd backend && uv run pytest tests/cluster/test_pipeline.py -v` — **PASS** (5 tests)
+
+### 2026-04-15 — P04-05: Representative selection
+- Extended `backend/app/cluster/pipeline.py` with `pick_representative(originals)` function
+- Implementation uses Counter to count frequencies, then applies tiebreak rules: most frequent → shortest length → alphabetical order
+- Added import for Counter at top of file
+- Extended `backend/tests/cluster/test_pipeline.py` with 5 assertions:
+  - test_pick_representative_most_frequent_wins: verifies most frequent wins regardless of length/alphabetical
+  - test_pick_representative_tiebreak_shortest: verifies shorter string wins when frequencies are tied
+  - test_pick_representative_tiebreak_alphabetical: verifies alphabetical order wins when frequency and length are tied
+  - test_pick_representative_determinism: verifies same input always produces same output
+  - test_pick_representative_singleton: verifies single-item cluster returns that item
+- Fixed test_pick_representative_tiebreak_alphabetical to use same-length strings ("Director IT" and "Director RH" both 11 chars)
+- Test: `cd backend && uv run pytest tests/cluster/test_pipeline.py -v` — **PASS** (10 tests total, 5 for pick_representative)

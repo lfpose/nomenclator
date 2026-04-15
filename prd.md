@@ -446,7 +446,7 @@ Key features: prompt review (optional AI validation), row subset (test with firs
       "Verify: cd backend && uv run pytest tests/cluster/test_pipeline.py::test_pick_representative -v"
     ],
     "test": "cd backend && uv run pytest tests/cluster/test_pipeline.py::test_pick_representative -v",
-    "passes": false
+    "passes": true
   },
   {
     "id": "P04-06",
