@@ -1,41 +1,12 @@
-import sqlite3
-from pathlib import Path
-
 import pytest
 
 
-@pytest.fixture
-def conn():
-    """Create an in-memory SQLite connection with all migrations applied."""
-    conn = sqlite3.connect(":memory:", isolation_level=None)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA foreign_keys = ON")
-
-    # Apply migrations
-    migrations_dir = Path(__file__).parent.parent.parent / "app" / "migrations"
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS schema_version (
-            version INTEGER PRIMARY KEY,
-            applied_at INTEGER NOT NULL
-        )
-    """)
-
-    for path in sorted(migrations_dir.glob("*.sql")):
-        version = int(path.name.split("_")[0])
-        if conn.execute("SELECT 1 FROM schema_version WHERE version = ?", (version,)).fetchone():
-            continue
-        sql = path.read_text()
-        conn.executescript(sql)
-        conn.execute("INSERT INTO schema_version VALUES (?, unixepoch())", (version,))
-
-    yield conn
-    conn.close()
+from app.dao.clusters import delete_clusters_for_job, insert_cluster, mark_cluster_error, update_cluster_answers, count_unresolved_clusters
+from app.dao.jobs import create_job
 
 
 def test_insert_cluster_returns_id(conn):
     """Test that insert_cluster returns the new cluster ID."""
-    from backend.app.dao.jobs import create_job
-
     job_id = create_job(
         conn,
         task_template_id="job_titles_es",
@@ -54,8 +25,6 @@ def test_insert_cluster_returns_id(conn):
     assert cluster_id == 1
 
     # Test using the actual function
-    from backend.app.dao.clusters import insert_cluster
-
     new_id = insert_cluster(
         conn,
         job_id=job_id,
@@ -69,9 +38,6 @@ def test_insert_cluster_returns_id(conn):
 
 def test_update_cluster_answers_persists(conn):
     """Test that update_cluster_answers persists values."""
-    from backend.app.dao.clusters import insert_cluster, update_cluster_answers
-    from backend.app.dao.jobs import create_job
-
     job_id = create_job(
         conn,
         task_template_id="job_titles_es",
@@ -103,9 +69,6 @@ def test_update_cluster_answers_persists(conn):
 
 def test_mark_cluster_error_persists(conn):
     """Test that mark_cluster_error persists error code."""
-    from backend.app.dao.clusters import insert_cluster, mark_cluster_error
-    from backend.app.dao.jobs import create_job
-
     job_id = create_job(
         conn,
         task_template_id="job_titles_es",
@@ -129,9 +92,6 @@ def test_mark_cluster_error_persists(conn):
 
 def test_delete_clusters_for_job_removes_all(conn):
     """Test that delete_clusters_for_job removes all clusters."""
-    from backend.app.dao.clusters import delete_clusters_for_job, insert_cluster
-    from backend.app.dao.jobs import create_job
-
     job_id = create_job(
         conn,
         task_template_id="job_titles_es",
@@ -165,13 +125,6 @@ def test_delete_clusters_for_job_removes_all(conn):
 
 def test_count_unresolved_clusters_after_answer_drops_count(conn):
     """Test that count_unresolved_clusters decreases after answers are set."""
-    from backend.app.dao.clusters import (
-        count_unresolved_clusters,
-        insert_cluster,
-        update_cluster_answers,
-    )
-    from backend.app.dao.jobs import create_job
-
     job_id = create_job(
         conn,
         task_template_id="job_titles_es",

@@ -290,7 +290,7 @@ Key features: prompt review (optional AI validation), row subset (test with firs
       "Verify: cd backend && uv run pytest tests/dao/ -v (total count >= 40, all passing)"
     ],
     "test": "cd backend && uv run pytest tests/dao/ -v",
-    "passes": false
+    "passes": true
   },
   {
     "id": "P03-01",

@@ -3,20 +3,6 @@ import time
 
 from app.dao.job_rows import bulk_insert_rows, list_rows, assign_cluster, clear_clusters
 from app.dao.jobs import create_job
-from app.db import _apply_migrations
-
-
-@pytest.fixture
-def conn():
-    """Create a fresh in-memory SQLite connection with migrations applied."""
-    import sqlite3
-    c = sqlite3.connect(":memory:", isolation_level=None)
-    c.row_factory = sqlite3.Row
-    c.execute("PRAGMA journal_mode = WAL")
-    c.execute("PRAGMA foreign_keys = ON")
-    _apply_migrations(c)
-    yield c
-    c.close()
 
 
 def test_bulk_insert_preserves_row_index_order(conn):

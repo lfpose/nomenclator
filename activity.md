@@ -181,3 +181,11 @@
 - hash-not-raw check verifies that only the SHA-256 hash is stored in the database, not the raw session token
 - Test: `cd backend && uv run pytest tests/dao/test_sessions.py -v` — **PASS** (5 tests)
 - Also verified: all DAO tests pass (40 tests total)
+
+### 2026-04-15 — P02-12: Test fixtures: in-memory DB
+- Added shared `conn` pytest fixture to `backend/tests/conftest.py` that yields a fresh in-memory SQLite connection with all migrations applied
+- Fixture creates in-memory DB with WAL mode, foreign_keys ON, applies migrations, and closes on teardown
+- Removed duplicate `conn` fixtures from all DAO test files (test_task_templates.py, test_jobs.py, test_job_rows.py, test_clusters.py, test_batches.py, test_batch_requests.py, test_spend_log.py, test_sessions.py)
+- Fixed incorrect imports in test_clusters.py and test_batches.py (changed `from backend.app.dao...` to `from app.dao...`)
+- Consolidated imports at top of test files, removing inline imports
+- Test: `cd backend && uv run pytest tests/dao/ -v` — **PASS** (40 tests total)

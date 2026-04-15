@@ -1,42 +1,13 @@
-import sqlite3
-from pathlib import Path
-
 import pytest
 
-
-@pytest.fixture
-def conn():
-    """Create an in-memory SQLite connection with all migrations applied."""
-    conn = sqlite3.connect(":memory:", isolation_level=None)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA foreign_keys = ON")
-
-    # Apply migrations
-    migrations_dir = Path(__file__).parent.parent.parent / "app" / "migrations"
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS schema_version (
-            version INTEGER PRIMARY KEY,
-            applied_at INTEGER NOT NULL
-        )
-    """)
-
-    for path in sorted(migrations_dir.glob("*.sql")):
-        version = int(path.name.split("_")[0])
-        if conn.execute("SELECT 1 FROM schema_version WHERE version = ?", (version,)).fetchone():
-            continue
-        sql = path.read_text()
-        conn.executescript(sql)
-        conn.execute("INSERT INTO schema_version VALUES (?, unixepoch())", (version,))
-
-    yield conn
-    conn.close()
+from app.dao.batches import Batch, get_batch, insert_batch, list_batches_for_job, list_non_terminal_batches, update_batch_status
+from app.dao.clusters import insert_cluster
+from app.dao.jobs import create_job, update_job_status
+import uuid
 
 
 def test_insert_and_get_roundtrips(conn):
     """Test that insert_batch and get_batch roundtrip correctly."""
-    from backend.app.dao.batches import get_batch, insert_batch
-    from backend.app.dao.jobs import create_job
-
     job_id = create_job(
         conn,
         task_template_id="job_titles_es",
@@ -69,9 +40,6 @@ def test_insert_and_get_roundtrips(conn):
 
 def test_update_batch_status_sets_timestamps(conn):
     """Test that update_batch_status sets polled_at and completed_at when provided."""
-    from backend.app.dao.batches import get_batch, insert_batch, update_batch_status
-    from backend.app.dao.jobs import create_job
-
     job_id = create_job(
         conn,
         task_template_id="job_titles_es",
@@ -111,9 +79,6 @@ def test_update_batch_status_sets_timestamps(conn):
 
 def test_list_batches_for_job_ordered_by_round(conn):
     """Test that list_batches_for_job returns batches ordered by retry_round ASC."""
-    from backend.app.dao.batches import insert_batch, list_batches_for_job
-    from backend.app.dao.jobs import create_job
-
     job_id = create_job(
         conn,
         task_template_id="job_titles_es",
@@ -161,9 +126,6 @@ def test_list_batches_for_job_ordered_by_round(conn):
 
 def test_list_non_terminal_batches_excludes_completed_jobs(conn):
     """Test that list_non_terminal_batches excludes batches from completed/failed/cancelled jobs."""
-    from backend.app.dao.batches import insert_batch, list_non_terminal_batches
-    from backend.app.dao.jobs import create_job, update_job_status
-
     # Create a job in non-terminal status
     active_job_id = create_job(
         conn,

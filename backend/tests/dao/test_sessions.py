@@ -1,27 +1,8 @@
 import hashlib
 import time
-import sqlite3
-from pathlib import Path
-
 import pytest
 
 from app.dao.sessions import Session, create_session, delete_session, get_valid_session, purge_expired
-
-
-@pytest.fixture
-def conn():
-    """Create an in-memory SQLite connection with all migrations applied."""
-    conn = sqlite3.connect(":memory:", isolation_level=None)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA journal_mode = WAL")
-    conn.execute("PRAGMA foreign_keys = ON")
-
-    # Apply migrations
-    from app.db import _apply_migrations
-    _apply_migrations(conn)
-
-    yield conn
-    conn.close()
 
 
 def test_create_and_get_roundtrips(conn):

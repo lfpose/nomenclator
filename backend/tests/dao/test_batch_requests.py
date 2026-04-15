@@ -1,43 +1,13 @@
-import sqlite3
-from pathlib import Path
-
 import pytest
 
-
-@pytest.fixture
-def conn():
-    """Create an in-memory SQLite connection with all migrations applied."""
-    conn = sqlite3.connect(":memory:", isolation_level=None)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA foreign_keys = ON")
-
-    # Apply migrations
-    migrations_dir = Path(__file__).parent.parent.parent / "app" / "migrations"
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS schema_version (
-            version INTEGER PRIMARY KEY,
-            applied_at INTEGER NOT NULL
-        )
-    """)
-
-    for path in sorted(migrations_dir.glob("*.sql")):
-        version = int(path.name.split("_")[0])
-        if conn.execute("SELECT 1 FROM schema_version WHERE version = ?", (version,)).fetchone():
-            continue
-        sql = path.read_text()
-        conn.executescript(sql)
-        conn.execute("INSERT INTO schema_version VALUES (?, unixepoch())", (version,))
-
-    yield conn
-    conn.close()
+from app.dao.batch_requests import BatchRequest, insert_request, list_requests_for_batch, mark_request_completed, mark_request_failed, mark_request_missing, list_pending_requests
+from app.dao.batches import insert_batch
+from app.dao.jobs import create_job
+import uuid
 
 
 def test_insert_serializes_cluster_ids_as_json(conn):
     """Test that insert_request serializes cluster_ids as JSON."""
-    from backend.app.dao.batch_requests import insert_request, list_requests_for_batch
-    from backend.app.dao.batches import insert_batch
-    from backend.app.dao.jobs import create_job
-
     job_id = create_job(
         conn,
         task_template_id="job_titles_es",
@@ -74,10 +44,6 @@ def test_insert_serializes_cluster_ids_as_json(conn):
 
 def test_list_requests_deserializes_cluster_ids(conn):
     """Test that list_requests_for_batch deserializes cluster_ids correctly."""
-    from backend.app.dao.batch_requests import insert_request, list_requests_for_batch
-    from backend.app.dao.batches import insert_batch
-    from backend.app.dao.jobs import create_job
-
     job_id = create_job(
         conn,
         task_template_id="job_titles_es",
@@ -124,14 +90,6 @@ def test_list_requests_deserializes_cluster_ids(conn):
 
 def test_mark_request_completed_updates_status(conn):
     """Test that mark_request_completed updates status and raw_response."""
-    from backend.app.dao.batch_requests import (
-        insert_request,
-        list_requests_for_batch,
-        mark_request_completed,
-    )
-    from backend.app.dao.batches import insert_batch
-    from backend.app.dao.jobs import create_job
-
     job_id = create_job(
         conn,
         task_template_id="job_titles_es",
@@ -167,14 +125,6 @@ def test_mark_request_completed_updates_status(conn):
 
 def test_mark_request_failed_sets_error(conn):
     """Test that mark_request_failed sets error and status."""
-    from backend.app.dao.batch_requests import (
-        insert_request,
-        list_requests_for_batch,
-        mark_request_failed,
-    )
-    from backend.app.dao.batches import insert_batch
-    from backend.app.dao.jobs import create_job
-
     job_id = create_job(
         conn,
         task_template_id="job_titles_es",
@@ -210,16 +160,6 @@ def test_mark_request_failed_sets_error(conn):
 
 def test_list_pending_requests_filters_by_status(conn):
     """Test that list_pending_requests returns only pending requests."""
-    from backend.app.dao.batch_requests import (
-        insert_request,
-        list_pending_requests,
-        mark_request_completed,
-        mark_request_failed,
-        mark_request_missing,
-    )
-    from backend.app.dao.batches import insert_batch
-    from backend.app.dao.jobs import create_job
-
     job_id = create_job(
         conn,
         task_template_id="job_titles_es",

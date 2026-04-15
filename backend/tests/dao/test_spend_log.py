@@ -1,43 +1,13 @@
 import time
-import sqlite3
-from pathlib import Path
-
 import pytest
 
-
-@pytest.fixture
-def conn():
-    """Create an in-memory SQLite connection with all migrations applied."""
-    conn = sqlite3.connect(":memory:", isolation_level=None)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA foreign_keys = ON")
-
-    # Apply migrations
-    migrations_dir = Path(__file__).parent.parent.parent / "app" / "migrations"
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS schema_version (
-            version INTEGER PRIMARY KEY,
-            applied_at INTEGER NOT NULL
-        )
-    """)
-
-    for path in sorted(migrations_dir.glob("*.sql")):
-        version = int(path.name.split("_")[0])
-        if conn.execute("SELECT 1 FROM schema_version WHERE version = ?", (version,)).fetchone():
-            continue
-        sql = path.read_text()
-        conn.executescript(sql)
-        conn.execute("INSERT INTO schema_version VALUES (?, unixepoch())", (version,))
-
-    yield conn
-    conn.close()
+from app.dao.spend_log import SpendLog, insert_spend, sum_last_30_days, reset_date_approx
+from app.dao.jobs import create_job
+import uuid
 
 
 def test_insert_spend_persists(conn):
     """Test that insert_spend persists values."""
-    from backend.app.dao.spend_log import insert_spend
-    from backend.app.dao.jobs import create_job
-
     job_id = create_job(
         conn,
         task_template_id="job_titles_es",
@@ -63,9 +33,6 @@ def test_insert_spend_persists(conn):
 
 def test_sum_last_30_days_excludes_old_entries(conn):
     """Test that sum_last_30_days excludes entries older than 30 days."""
-    from backend.app.dao.spend_log import insert_spend, sum_last_30_days
-    from backend.app.dao.jobs import create_job
-
     job_id = create_job(
         conn,
         task_template_id="job_titles_es",
@@ -104,17 +71,12 @@ def test_sum_last_30_days_excludes_old_entries(conn):
 
 def test_sum_last_30_days_returns_zero_when_empty(conn):
     """Test that sum_last_30_days returns 0.0 when there are no entries."""
-    from backend.app.dao.spend_log import sum_last_30_days
-
     total = sum_last_30_days(conn, now=1234567890)
     assert total == 0.0
 
 
 def test_reset_date_approx_returns_oldest_plus_30(conn):
     """Test that reset_date_approx returns oldest entry + 30 days."""
-    from backend.app.dao.spend_log import insert_spend, reset_date_approx
-    from backend.app.dao.jobs import create_job
-
     job_id = create_job(
         conn,
         task_template_id="job_titles_es",
