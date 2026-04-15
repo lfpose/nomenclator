@@ -2,8 +2,8 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 13
-**Current Task:** P02-06
+**Tasks Completed:** 14
+**Current Task:** P02-07
 
 ---
 
@@ -130,3 +130,14 @@
 - Created `backend/tests/dao/test_job_rows.py` with 5 assertions including 10k row performance guard
 - Fixed tests to create clusters first before assigning (required for FOREIGN KEY constraint)
 - Test: `cd backend && uv run pytest tests/dao/test_job_rows.py -v` — **PASS** (5 tests)
+
+### 2026-04-15 — P02-07: DAO: clusters
+- Created `backend/app/dao/clusters.py` with Cluster dataclass and 6 functions: insert_cluster, delete_clusters_for_job, update_cluster_answers, mark_cluster_error, list_clusters, count_unresolved_clusters
+- insert_cluster: inserts a cluster and returns the auto-increment ID
+- delete_clusters_for_job: deletes all clusters for a job
+- update_cluster_answers: updates male_es, female_es, and category fields
+- mark_cluster_error: sets error code for a cluster
+- list_clusters: returns all clusters for a job ordered by id
+- count_unresolved_clusters: counts clusters where all answer fields and error are NULL
+- Created `backend/tests/dao/test_clusters.py` with 5 assertions
+- Test: `cd backend && uv run pytest tests/dao/test_clusters.py -v` — **PASS** (5 tests)
