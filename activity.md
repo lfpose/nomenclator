@@ -2,12 +2,47 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 114
-**Current Task:** P14-13 (completed)
+**Tasks Completed:** 115
+**Current Task:** P14-14 (completed)
 
 ---
 
 ## Session Log
+
+### 2026-04-15 — P14-14: Tool page assembly
+- Replaced `frontend/src/routes/index.tsx` placeholder with full Tool page assembling all components:
+  - Uses useToolForm state machine to drive which panels are visible
+  - Header with "Nomenclator" title and subtitle "Standardize messy job titles into canonical Spanish forms."
+  - InputArea component for CSV upload and paste text input
+  - TaxonomyInput component for optional taxonomy field
+  - AdvancedPanel with threshold slider, titles per request input, prompt override, and dry-run toggle
+  - Preview button shown in input_loaded state
+  - Preview panel shown in previewed state with counts, cost, top clusters, re-cluster and submit buttons
+  - Job status panel shown in running/completed/failed/cancelled states
+  - History panel always shown below form with job list
+  - Footer with "Nomenclator · v1.0 · built for a single operator · quis custodiet ipsos custodes?"
+- Properly handles nested state structure: `state.toolState.kind` instead of `state.kind`
+- Created `frontend/tests/tool-page.test.tsx` with 5 assertions:
+  - `test("shows only form in idle state")`: verifies input area, taxonomy input, and advanced panel are shown, job status panel is hidden
+  - `test("shows preview panel after preview success")`: verifies preview panel shows counts, cost, top clusters, and action buttons
+  - `test("shows status panel after commit")`: verifies job status panel is shown with job ID, preview elements are hidden
+  - `test("shows history below form at all times")`: verifies history panel is shown with job count and "Job history" heading
+  - `test("shows spend footer")`: verifies footer contains expected text including "Nomenclator", "v1.0", and Latin phrase
+- Fixed test mocking issues:
+  - Corrected mock structure to match ToolFormState: `state: { toolState: { kind: "idle" }, row_subset_mode, row_subset_n, is_dry_run }`
+  - Used proper type assertions with `as const` for discriminated unions
+  - Mocked all hooks and components to avoid dependency issues
+- Fixed TypeScript compilation issues:
+  - Removed unused imports (PreviewPanel, useNotification destructured elements)
+  - Fixed state access pattern to use nested `state.toolState`
+  - Handled type annotations for cluster objects in map
+  - Removed incorrect state comparisons inside conditional blocks
+  - Used `void` statement to acknowledge unused variable
+- Test: `cd frontend && pnpm test --run tests/tool-page.test.tsx` — **PASS** (5 tests)
+- Also verified: `cd frontend && pnpm tsc --noEmit` — **PASS**
+- Also verified: `cd frontend && pnpm build` — **PASS**
+
+---
 
 ### 2026-04-15 — P14-12: Download button
 - Created `frontend/src/components/DownloadButton.tsx` with anchor element for CSV download:

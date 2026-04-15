@@ -1678,7 +1678,7 @@ Key features: prompt review (optional AI validation), row subset (test with firs
       "Verify: cd frontend && pnpm test --run tests/tool-page.test.tsx && pnpm build"
     ],
     "test": "cd frontend && pnpm test --run tests/tool-page.test.tsx && pnpm build",
-    "passes": false
+    "passes": true
   },
   {
     "id": "P14-15",
