@@ -2,8 +2,8 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 4
-**Current Task:** P01-06
+**Tasks Completed:** 5
+**Current Task:** P01-07
 
 ---
 
@@ -52,3 +52,9 @@
 - Created `frontend/tests/router.test.tsx` with 3 assertions using memory history and role-based queries
 - Added setupFiles to vite.config.ts for test environment
 - Test: `cd frontend && pnpm test --run tests/router.test.tsx` — **PASS** (3 tests)
+
+### 2026-04-15 — P01-06: Combined multi-stage Dockerfile
+- Created `Dockerfile` with stage 1 (fe-build: node:20-alpine, pnpm install + build) and stage 2 (runtime: python:3.12-slim, uv sync, copy backend + frontend dist)
+- Created `.dockerignore` excluding node_modules, __pycache__, *.pyc, .venv, .git
+- Docker build succeeded, container starts and serves /health
+- Test: `docker build + docker run + curl /health` — **PASS** (returns {"ok":true,"version":"0.1.0"})

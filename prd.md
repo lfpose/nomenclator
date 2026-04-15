@@ -98,7 +98,7 @@ Key features: prompt review (optional AI validation), row subset (test with firs
       "Verify: docker build -t nomenclator:test . && docker run --rm -p 8080:8080 nom-test && curl -sf http://localhost:8080/health"
     ],
     "test": "docker build -t nomenclator:test . && docker run --rm -d -p 8080:8080 --name nom-test nomenclator:test && sleep 3 && curl -sf http://localhost:8080/health && docker stop nom-test",
-    "passes": false
+    "passes": true
   },
   {
     "id": "P01-07",
