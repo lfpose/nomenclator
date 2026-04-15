@@ -2,12 +2,29 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 105
-**Current Task:** P14-04 (completed)
+**Tasks Completed:** 106
+**Current Task:** P13-07 (completed)
 
 ---
 
 ## Session Log
+
+### 2026-04-15 — P13-07: Spinner component
+- Created `frontend/src/components/Spinner.tsx` with simple loading spinner:
+  - Uses Tailwind's `animate-spin` class for spinning animation
+  - Uses `cn` utility from `@/lib/utils` for class merging
+  - Rounded-full border with `border-2 border-muted border-t-primary` styling
+  - Default size `h-4 w-4`
+  - Supports optional `className` prop for custom styling
+  - Includes `role="status"` and `aria-label="Loading"` for accessibility
+- Created `frontend/tests/spinner.test.tsx` with 2 assertions:
+  - `renders with aria-label`: verifies component renders with role="status" and aria-label="Loading"
+  - `applies custom className`: verifies custom className prop is applied correctly
+- Test: `cd frontend && pnpm test --run tests/spinner.test.tsx` — **PASS** (2 tests)
+- Also verified: `cd frontend && pnpm tsc --noEmit` — **PASS**
+- Also verified: `cd frontend && pnpm build` — **PASS**
+
+---
 
 ### 2026-04-15 — P14-04: Taxonomy textarea
 - Created `frontend/src/components/TaxonomyInput.tsx` with controlled textarea for taxonomy input:
