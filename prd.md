@@ -59,7 +59,7 @@ Key features: prompt review (optional AI validation), row subset (test with firs
       "Verify: cd backend && uv run pytest tests/test_smoke.py -v"
     ],
     "test": "cd backend && uv run pytest tests/test_smoke.py -v",
-    "passes": false
+    "passes": true
   },
   {
     "id": "P01-04",
