@@ -2,8 +2,8 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 56
-**Current Task:** P08-01
+**Tasks Completed:** 57
+**Current Task:** P08-03
 
 ---
 
@@ -26,6 +26,26 @@
 - Fixed issue: set `_task = None` after stop() to properly clean up finished task
 - Test: `cd backend && uv run pytest tests/worker/test_worker_skeleton.py -v` — **PASS** (3 tests)
 - Also verified: `cd backend && uv run ruff check app/worker/poller.py tests/worker/test_worker_skeleton.py` — **PASS**
+
+### 2026-04-15 — P08-02: Lifespan integration
+- Extended `backend/app/main.py` with lifespan context manager for worker lifecycle management
+- Added `@asynccontextmanager async def lifespan(app)` function that:
+  - Creates `RealAnthropicClient` using `settings.anthropic_api_key`
+  - Instantiates `Worker` with client and `get_connection` db_factory
+  - Calls `await worker.start()` to start the background task
+  - Stores worker reference in `app.state.worker`
+  - Yields control to FastAPI
+  - Calls `await worker.stop()` in finally block for clean shutdown
+- Updated `create_app()` to pass `lifespan=lifespan` to FastAPI constructor
+- Created `backend/tests/worker/test_lifespan.py` with 2 assertions:
+  - `test_lifespan_starts_worker`: verifies worker.start() is called during TestClient context entry, worker is accessible via app.state.worker, and /health endpoint works
+  - `test_lifespan_stops_worker_cleanly`: verifies worker.stop() is called when TestClient context exits
+- Used `TestClient` context manager to trigger full lifespan cycle (startup + shutdown) in tests
+- Used `unittest.mock.AsyncMock` and `patch` to mock Worker class methods
+- Fixed ruff issue: removed unused `pytest` import
+- Test: `cd backend && uv run pytest tests/worker/test_lifespan.py -v` — **PASS** (2 tests)
+- Also verified: `cd backend && uv run ruff check app/main.py tests/worker/test_lifespan.py` — **PASS**
+- Also verified: `cd backend && uv run pytest tests/worker/ -v` — **PASS** (5 tests total)
 
 ### 2026-04-15 — P07-11: Dry-run mode in commit
 - Extended `commit_job` function in `backend/app/jobs/service.py` with `is_dry_run` parameter
