@@ -639,7 +639,7 @@ Key features: prompt review (optional AI validation), row subset (test with firs
       "Verify: cd backend && uv run pytest tests/jobs/test_estimator.py -v"
     ],
     "test": "cd backend && uv run pytest tests/jobs/test_estimator.py -v",
-    "passes": false
+    "passes": true
   },
   {
     "id": "P06-02",

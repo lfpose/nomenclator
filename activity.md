@@ -2,12 +2,22 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 39
-**Current Task:** P05-11
+**Tasks Completed:** 40
+**Current Task:** P06-01
 
 ---
 
 ## Session Log
+
+### 2026-04-15 — P06-01: Cost estimator bound to template
+- Created `backend/app/jobs/estimator.py` with `estimate_job_cost(cluster_count, titles_per_request)` function that delegates to `pricing.estimate_cost`
+- This is a thin wrapper for discoverability within the jobs namespace
+- Created `backend/tests/jobs/test_estimator.py` with 2 assertions:
+  - `test_estimate_job_cost_delegates_to_pricing`: verifies delegation by comparing results with `pricing.estimate_cost`
+  - `test_estimate_job_cost_zero_clusters_is_zero`: verifies that 0 or negative cluster counts return 0.0 cost
+- Fixed unused import (`unittest.mock.patch`) flagged by ruff
+- Test: `cd backend && uv run pytest tests/jobs/test_estimator.py -v` — **PASS** (2 tests)
+- Also verified: `cd backend && uv run ruff check app/jobs/estimator.py tests/jobs/test_estimator.py` — **PASS**
 
 ### 2026-04-15 — P05-09: Fake Anthropic client fixture
 - Created `backend/tests/anthropic/fake_client.py` with `FakeBatch` dataclass (id, requests, processing_status, result_rows) and `FakeAnthropicBatchClient` class
