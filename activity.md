@@ -2,8 +2,8 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 29
-**Current Task:** P04-08
+**Tasks Completed:** 30
+**Current Task:** P05-02
 
 ---
 
@@ -346,3 +346,11 @@
   - Added `processor=None` to `compute_similarity` in `similarity.py` since strings are already normalized
 - Test: `cd backend && uv run pytest tests/cluster/test_performance.py -v` — **PASS** (1 test, 1.94s)
 - Also verified: all 35 cluster tests pass, ruff check passes
+
+### 2026-04-15 — P05-01: Pricing constants module
+- Created `backend/app/pricing.py` with pricing constants and `estimate_cost()` function
+- Constants: HAIKU_BATCH_IN/OUT_USD_PER_MTOK, SYSTEM_PROMPT_TOKENS, USER_PREAMBLE_TOKENS, IN/OUT_TOKENS_PER_TITLE, OUTPUT_OVERHEAD_TOKENS, MONTHLY_SPEND_CAP_USD
+- `estimate_cost()` calculates cost based on cluster_count and titles_per_request, accounting for system prompt, preamble, per-title tokens, and overhead
+- Created `backend/tests/test_pricing.py` with 4 assertions: zero clusters returns zero, 2500 clusters/25 TPR within range ($0.25-$0.50), monotonic with cluster count, decreases with higher TPR
+- Test: `cd backend && uv run pytest tests/test_pricing.py -v` — **PASS** (4 tests)
+- Also verified: ruff check passes
