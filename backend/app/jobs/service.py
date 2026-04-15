@@ -1,14 +1,22 @@
 import logging
+import uuid
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from app.anthropic.request_builder import TitleInput, build_request_params, build_system_prompt
 from app.cluster.pipeline import run_clustering
 from app.csv_io.ingest import ingest
+from app.dao import batches as batches_dao
+from app.dao import batch_requests as batch_requests_dao
 from app.dao import clusters as clusters_dao
 from app.dao import job_rows as job_rows_dao
 from app.dao import jobs as jobs_dao
-from app.jobs.estimator import estimate_job_cost
+from app.dao import task_templates as task_templates_dao
+from app.jobs.estimator import check_cap, estimate_job_cost
 from app.jobs.state_machine import assert_allowed
+
+if TYPE_CHECKING:
+    from app.dao.clusters import Cluster
 
 if TYPE_CHECKING:
     from sqlite3 import Connection
@@ -18,6 +26,11 @@ log = logging.getLogger("nomenclator.jobs")
 
 class ConcurrencyError(Exception):
     """Raised when a job cannot start because another job is already running."""
+    pass
+
+
+class SpendCapExceeded(Exception):
+    """Raised when estimated cost would exceed monthly spend cap."""
     pass
 
 
@@ -316,3 +329,121 @@ def recluster_job(
         top_clusters=top_clusters,
         warnings=warnings,
     )
+
+
+def commit_job(
+    conn: "Connection",
+    client,  # AnthropicBatchClient (protocol)
+    job_id: str,
+    *,
+    prompt_override: str | None = None,
+    taxonomy: str | None = None,
+    titles_per_request: int | None = None,
+) -> None:
+    """Commit a previewed job for processing by Anthropic.
+
+    Args:
+        conn: Database connection
+        client: Anthropic batch client (real or fake)
+        job_id: ID of the job to commit
+        prompt_override: Optional custom system prompt
+        taxonomy: Optional taxonomy string for categories
+        titles_per_request: Number of titles per request (uses job default if None)
+
+    Raises:
+        ValueError: If job not found, invalid state, or other validation errors
+        ConcurrencyError: If another job is already running
+        SpendCapExceeded: If estimated cost would exceed monthly cap
+    """
+    # Step 1: Validate job is in preview state
+    job = jobs_dao.get_job(conn, job_id)
+    if job is None:
+        raise ValueError(f"job not found: {job_id}")
+    if job.status != "preview":
+        raise ValueError(f"invalid_state: job must be in preview state, got {job.status}")
+
+    # Step 2: Check for concurrent jobs
+    assert_no_running_job(conn)
+
+    # Step 3: Load job configuration
+    template = task_templates_dao.get_template(conn, job.task_template_id)
+    if template is None:
+        raise ValueError(f"template not found: {job.task_template_id}")
+
+    if titles_per_request is None:
+        titles_per_request = job.titles_per_request
+
+    # Step 4: Load clusters
+    clusters = clusters_dao.list_clusters(conn, job_id)
+    if not clusters:
+        raise ValueError(f"no clusters found for job: {job_id}")
+
+    # Step 5: Build TitleInput groups of size titles_per_request
+    cluster_groups: list[list[Cluster]] = []
+    for i in range(0, len(clusters), titles_per_request):
+        cluster_groups.append(clusters[i:i + titles_per_request])
+
+    # Step 6: Build request params for each group
+    all_requests: list[dict] = []
+    system_prompt = prompt_override if prompt_override is not None else template.system_prompt
+    built_system_prompt = build_system_prompt(system_prompt, template.few_shots)
+
+    for group in cluster_groups:
+        titles = [
+            TitleInput(
+                id=f"t{cluster.id:03d}",
+                title=cluster.representative_original,
+            )
+            for cluster in group
+        ]
+        # Note: build_request_params requires len(titles) == titles_per_request,
+        # but we allow the last group to be smaller. We'll build with the actual size.
+        params = build_request_params(
+            titles=titles,
+            system_prompt=built_system_prompt,
+            taxonomy=taxonomy,
+            titles_per_request=len(titles),  # Use actual group size
+        )
+        all_requests.append(params)
+
+    # Step 7: Compute estimated cost
+    estimated_cost = estimate_job_cost(len(clusters), titles_per_request)
+
+    # Step 8: Check spend cap
+    cap_check = check_cap(conn, estimated_cost)
+    if not cap_check.ok:
+        raise SpendCapExceeded(
+            f"Monthly cap ${cap_check.cap_usd} would be exceeded "
+            f"(used: ${cap_check.used_usd:.2f}, estimated: ${cap_check.estimated_usd:.2f})"
+        )
+
+    # Step 9: Transition to queued state before submitting
+    transition(conn, job_id, "queued", reason="commit_start")
+
+    # Step 10: Submit batch to Anthropic
+    batch_id = client.submit_batch(all_requests)
+
+    # Step 11: Persist batch row
+    batches_dao.insert_batch(
+        conn,
+        id=batch_id,
+        job_id=job_id,
+        retry_round=0,
+        parent_batch_id=None,
+        status="in_progress",
+        request_count=len(cluster_groups),
+    )
+
+    # Step 12: Persist batch_requests rows with cluster_ids
+    for i, group in enumerate(cluster_groups):
+        request_id = str(uuid.uuid4())
+        cluster_ids = [cluster.id for cluster in group]
+        batch_requests_dao.insert_request(
+            conn,
+            id=request_id,
+            batch_id=batch_id,
+            cluster_ids=cluster_ids,
+        )
+
+    # Step 13: Transition job to submitted
+    transition(conn, job_id, "submitted", reason="commit")

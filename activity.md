@@ -2,12 +2,45 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 48
-**Current Task:** P07-05
+**Tasks Completed:** 49
+**Current Task:** P07-06
 
 ---
 
 ## Session Log
+
+### 2026-04-15 — P07-06: Commit job
+- Extended `backend/app/jobs/service.py` with `commit_job(conn, client, job_id, *, prompt_override, taxonomy, titles_per_request) -> None` function
+- Added `SpendCapExceeded` exception class for spend cap violations
+- Implementation follows job lifecycle spec: preview -> queued -> submitted transitions
+- Validates job is in preview state, raises ValueError('invalid_state') if not
+- Calls `assert_no_running_job()` to enforce single-concurrency rule
+- Loads task template for system_prompt and few_shots configuration
+- Loads clusters for the job and builds TitleInput groups of size titles_per_request
+- Handles last request being smaller than titles_per_request (builds tool schema with matching min/max)
+- Builds request params via `build_request_params()` with actual group size
+- Computes estimated cost via `estimate_job_cost()`
+- Runs `check_cap()` and raises `SpendCapExceeded` if not ok
+- Submits batch to Anthropic via `client.submit_batch(requests)`
+- Persists batch row (retry_round=0, status='in_progress')
+- Persists batch_requests rows with cluster_ids serialized as JSON
+- Transitions job to 'submitted' state via transition function
+- Created `backend/tests/jobs/test_commit.py` with 8 assertions using FakeAnthropicBatchClient:
+  - `test_commit_builds_batch_requests`: verifies batch requests are built correctly
+  - `test_commit_transitions_to_submitted`: verifies job transitions to submitted state
+  - `test_commit_raises_on_non_preview_state`: verifies ValueError for non-preview jobs
+  - `test_commit_raises_on_spend_cap_exceeded`: verifies SpendCapExceeded when cap exceeded
+  - `test_commit_raises_on_concurrent_job`: verifies ConcurrencyError when another job running
+  - `test_commit_persists_batch_and_batch_requests`: verifies batch and requests are persisted
+  - `test_commit_persists_cluster_ids_json`: verifies cluster_ids serialized correctly
+  - `test_commit_handles_last_smaller_request`: verifies last request can be smaller
+- Fixed import order and removed unused imports (json, TitleInput, run_clustering, job_rows)
+- Used TYPE_CHECKING for Cluster type hint to avoid runtime import
+- Fixed spend cap test to use current timestamp (int(time.time())) for spend_log entries
+- Fixed test to use valid state transition (preview -> cancelled instead of preview -> completed)
+- Test: `cd backend && uv run pytest tests/jobs/test_commit.py -v` — **PASS** (8 tests)
+- Also verified: `cd backend && uv run ruff check app/jobs/service.py tests/jobs/test_commit.py` — **PASS**
+- All 50 job tests still pass
 
 ### 2026-04-15 — P07-05: Recluster existing job
 - Extended `backend/app/jobs/service.py` with `recluster_job(conn, job_id, threshold) -> PreviewResult` function
