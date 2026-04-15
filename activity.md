@@ -2,8 +2,8 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 32
-**Current Task:** P05-04
+**Tasks Completed:** 33
+**Current Task:** P05-05
 
 ---
 
@@ -385,3 +385,26 @@
 - Validated SQL migration by running it on temporary database: all checks pass
 - Test: `cd backend && uv run pytest tests/test_seed_prompt.py -v` — **PASS** (3 tests)
 - Also verified: ruff check passes on test file
+
+### 2026-04-15 — P05-04: Request builder
+- Created `backend/app/anthropic/request_builder.py` with three functions and a dataclass:
+  - `TitleInput` dataclass (frozen) with id and title fields
+  - `build_system_prompt()`: embeds few-shot examples into the template system prompt
+  - `build_user_message()`: constructs the user message with optional taxonomy section and JSON-serialized titles
+  - `build_request_params()`: builds the full Anthropic API request params with model, max_tokens, temperature, system prompt, messages, tools, and tool_choice
+- Created `backend/tests/anthropic/test_request_builder.py` with 8 assertions:
+  - test_build_user_message_includes_taxonomy_when_present
+  - test_build_user_message_omits_taxonomy_when_none
+  - test_build_user_message_serializes_titles_as_json_array
+  - test_build_request_params_sets_tool_choice_to_forced
+  - test_build_request_params_temperature_is_zero
+  - test_build_request_params_max_tokens_scales_with_tpr
+  - test_build_request_params_assertion_on_mismatched_tpr
+  - test_build_system_prompt_embeds_few_shots
+- Implementation uses `json.dumps()` with `ensure_ascii=False` and `indent=2` for readable JSON output
+- `build_request_params()` asserts that `len(titles) == titles_per_request` to catch mismatches early
+- Tool choice is forced to `emit_standardized_titles` to ensure tool use
+- Temperature is set to 0 for deterministic output
+- Max tokens scales as `titles_per_request * 80 + 200` to accommodate variable response sizes
+- Test: `cd backend && uv run pytest tests/anthropic/test_request_builder.py -v` — **PASS** (8 tests)
+- Also verified: ruff check passes
