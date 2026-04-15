@@ -2,8 +2,8 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 79
-**Current Task:** P11-03 (completed)
+**Tasks Completed:** 80
+**Current Task:** P11-04 (completed)
 
 ---
 
@@ -113,6 +113,20 @@
   - `test_export_drift_logged_with_counts`: verifies drift is logged with job_id and counts using caplog
 - Test: `cd backend && uv run pytest tests/csv/test_assertion.py -v` — **PASS** (4 tests)
 - Also verified: `cd backend && uv run ruff check app/csv_io/exporter.py tests/csv/test_assertion.py` — **PASS**
+
+### 2026-04-15 — P11-04: Filename builder
+- Extended `backend/app/csv_io/exporter.py` with `download_filename()` function
+- `download_filename(job_id)` produces the download filename from a job ID
+- Implementation strips hyphens from job ID, takes first 8 characters, and prefixes with 'nomenclator-' and suffix with '.csv'
+- Example: 'a1b2-c3d4-e5f6-g7h8' → 'nomenclator-a1b2c3d4.csv'
+- Created `backend/tests/csv/test_filename.py` with 5 assertions:
+  - `test_download_filename_strips_hyphens`: verifies hyphens are stripped from job ID
+  - `test_download_filename_starts_with_prefix`: verifies filename starts with 'nomenclator-' prefix
+  - `test_download_filename_uses_8_chars`: verifies filename uses exactly 8 characters from job ID
+  - `test_download_filename_short_job_id`: verifies short job IDs are handled correctly (uses all available characters)
+  - `test_download_filename_no_hyphens`: verifies job IDs without hyphens are handled correctly
+- Test: `cd backend && uv run pytest tests/csv/test_filename.py -v` — **PASS** (5 tests)
+- Also verified: `cd backend && uv run ruff check app/csv_io/exporter.py tests/csv/test_filename.py` — **PASS**
 
 ---
 

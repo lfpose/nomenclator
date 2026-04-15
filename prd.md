@@ -1272,7 +1272,7 @@ Key features: prompt review (optional AI validation), row subset (test with firs
       "Verify: cd backend && uv run pytest tests/csv/test_filename.py -v"
     ],
     "test": "cd backend && uv run pytest tests/csv/test_filename.py -v",
-    "passes": false
+    "passes": true
   },
   {
     "id": "P11-05",

@@ -68,3 +68,8 @@ def export_job_to_csv(conn, job_id: str) -> bytes:
         )
         raise RowCountDriftError(job_id, job.total_rows, len(rows))
     return write_csv_bytes(rows)
+
+
+def download_filename(job_id: str) -> str:
+    short = job_id.replace("-", "")[:8]
+    return f"nomenclator-{short}.csv"
