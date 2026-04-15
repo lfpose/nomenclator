@@ -2,8 +2,8 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 10
-**Current Task:** P02-03
+**Tasks Completed:** 11
+**Current Task:** P02-04
 
 ---
 
@@ -108,3 +108,9 @@
 - Created `backend/tests/test_db_dependency.py` with 2 assertions: test_db_dep_yields_working_connection and test_db_dep_closes_on_exception
 - Used ConnectionWrapper class to track close calls on the connection, mock.patch to replace get_connection
 - Test: `cd backend && uv run pytest tests/test_db_dependency.py -v` — **PASS** (2 tests)
+
+### 2026-04-15 — P02-04: DAO: task_templates
+- Created `backend/app/dao/task_templates.py` with TaskTemplate dataclass and get_template(conn, template_id) function
+- Created `backend/tests/dao/test_task_templates.py` with 3 assertions: seed row returned, None for nonexistent, JSON fields parsed
+- Added conn fixture for in-memory SQLite with migrations applied (will be moved to conftest.py in P02-12)
+- Test: `cd backend && uv run pytest tests/dao/test_task_templates.py -v` — **PASS** (3 tests)
