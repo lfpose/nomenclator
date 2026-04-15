@@ -859,7 +859,7 @@ Key features: prompt review (optional AI validation), row subset (test with firs
       "Verify: cd backend && uv run pytest tests/worker/test_tick_poll.py -v"
     ],
     "test": "cd backend && uv run pytest tests/worker/test_tick_poll.py -v",
-    "passes": false
+    "passes": true
   },
   {
     "id": "P08-04",
@@ -872,7 +872,7 @@ Key features: prompt review (optional AI validation), row subset (test with firs
       "Verify: cd backend && uv run pytest tests/worker/test_on_batch_ended.py -v"
     ],
     "test": "cd backend && uv run pytest tests/worker/test_on_batch_ended.py -v",
-    "passes": false
+    "passes": true
   },
   {
     "id": "P08-05",

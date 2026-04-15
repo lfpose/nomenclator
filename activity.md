@@ -2,8 +2,8 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 57
-**Current Task:** P08-03
+**Tasks Completed:** 59
+**Current Task:** P08-05
 
 ---
 
@@ -26,6 +26,47 @@
 - Fixed issue: set `_task = None` after stop() to properly clean up finished task
 - Test: `cd backend && uv run pytest tests/worker/test_worker_skeleton.py -v` — **PASS** (3 tests)
 - Also verified: `cd backend && uv run ruff check app/worker/poller.py tests/worker/test_worker_skeleton.py` — **PASS**
+
+### 2026-04-15 — P08-04: On-batch-ended: fetch and parse results
+- Verified that `_on_batch_ended()` is already implemented in `backend/app/worker/poller.py`
+- Implementation handles:
+  - Fetching batch results from Anthropic client
+  - Mapping requests by custom_id for lookup
+  - Accumulating input/output tokens for spend recording
+  - Parsing tool calls with error handling (ParseError → mark request as failed)
+  - Analyzing stragglers to identify missing IDs
+  - Updating cluster answers with parsed results
+  - Marking requests as completed/missing
+  - Recording batch cost via `record_batch_cost()`
+- Added `had_matching_requests` flag to ensure spend is only recorded when at least one matching request was processed
+- All 5 tests in `backend/tests/worker/test_on_batch_ended.py` pass:
+  - `test_on_batch_ended_writes_answers_to_clusters`
+  - `test_on_batch_ended_records_spend`
+  - `test_on_batch_ended_marks_schema_violation_requests_failed`
+  - `test_on_batch_ended_marks_request_missing_when_stragglers_present`
+  - `test_on_batch_ended_skips_unknown_custom_id`
+- Test: `cd backend && uv run pytest tests/worker/test_on_batch_ended.py -v` — **PASS** (5 tests)
+- Also verified: `cd backend && uv run pytest tests/worker/ -v` — **PASS** (14 tests total)
+
+### 2026-04-15 — P08-03: Tick: scan non-terminal jobs and poll
+- Extended `backend/app/worker/poller.py` with full `tick()` implementation
+- Implemented job filtering to non-terminal statuses: {"submitted", "polling", "retrying"}
+- For each job, iterates through batches and skips those already in terminal states ("ended", "canceled", "expired")
+- Calls `client.get_batch_status(batch.id)` to poll Anthropic for each active batch
+- Updates batch status via `batches_dao.update_batch_status()` with polled_at and completed_at timestamps
+- Calls `_on_batch_ended(conn, job, batch)` placeholder when batch status is "ended" (to be filled in P08-04)
+- Transitions job from "submitted" to "polling" on first poll when any batch is still active
+- Added `_on_batch_ended()` placeholder method (no-op, to be implemented in P08-04)
+- Created `backend/tests/worker/test_tick_poll.py` with 4 assertions:
+  - `test_tick_ignores_terminal_jobs`: verifies jobs in terminal states are skipped
+  - `test_tick_polls_submitted_jobs_and_transitions_to_polling`: verifies submitted jobs transition to polling
+  - `test_tick_updates_batch_polled_at`: verifies polled_at timestamp is updated
+  - `test_tick_skips_already_ended_batches`: verifies already-ended batches are not polled
+- Used temporary file-based database for testing (since tick() closes connections after use, requiring multiple connections to the same database)
+- Fixed `get_temp_db_factory()` to set `row_factory = sqlite3.Row` on all connections for proper dict-like row access
+- Test: `cd backend && uv run pytest tests/worker/test_tick_poll.py -v` — **PASS** (4 tests)
+- Also verified: `cd backend && uv run pytest tests/worker/ -v` — **PASS** (9 tests total)
+- Also verified: `cd backend && uv run ruff check app/worker/poller.py tests/worker/test_tick_poll.py` — **PASS**
 
 ### 2026-04-15 — P08-02: Lifespan integration
 - Extended `backend/app/main.py` with lifespan context manager for worker lifecycle management
