@@ -2,10 +2,6 @@ import uuid
 
 from sqlite3 import Connection
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from typing import Self
 
 
 @dataclass(frozen=True)
@@ -95,9 +91,9 @@ def get_job(conn: Connection, job_id: str) -> Job | None:
 
 
 def list_jobs(conn: Connection) -> list[Job]:
-    """List all jobs ordered by created_at DESC."""
+    """List all jobs ordered by created_at DESC, then id DESC for tiebreaking."""
     rows = conn.execute(
-        "SELECT * FROM jobs ORDER BY created_at DESC"
+        "SELECT * FROM jobs ORDER BY created_at DESC, id DESC"
     ).fetchall()
     return [
         Job(

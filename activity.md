@@ -2,12 +2,35 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 74
-**Current Task:** P10-07 (completed)
+**Tasks Completed:** 75
+**Current Task:** P10-08 (completed)
 
 ---
 
 ## Session Log
+
+### 2026-04-15 — P10-08: GET /jobs
+- Extended `backend/app/api/jobs.py` with GET /jobs endpoint:
+  - Calls `dao.list_jobs()` to retrieve all jobs from the database
+  - Uses `serialize_job()` helper to convert Job dataclass to dict with ISO-formatted timestamps
+  - Returns response with `{"jobs": [serialized_job_list]}`
+  - Added `serialize_job()` function that formats `created_at` and `finished_at` timestamps as ISO 8601 strings in UTC timezone
+  - Rounds `est_cost_usd` and `actual_cost_usd` to 4 decimal places for JSON serialization
+- Modified `backend/app/dao/jobs.py` to add secondary sort key to `list_jobs()` query:
+  - Changed from `ORDER BY created_at DESC` to `ORDER BY created_at DESC, id DESC`
+  - This ensures deterministic ordering when jobs have identical timestamps (within the same second)
+  - Removed unused `typing.Self` import from TYPE_CHECKING block
+- Created `backend/tests/api/test_api_list_jobs.py` with 4 assertions:
+  - `test_list_jobs_empty_returns_empty_array`: verifies GET /jobs returns `{"jobs": []}` when no jobs exist
+  - `test_list_jobs_after_creation_returns_one`: verifies GET /jobs returns one job after creating it via preview, with correct fields (id, status, total_rows, cluster_count, created_at)
+  - `test_list_jobs_ordered_newest_first`: verifies jobs are ordered by created_at descending (uses 1.1s delay to ensure different timestamps)
+  - `test_list_jobs_requires_auth`: verifies GET /jobs returns 401 with unauthenticated error when no session cookie is provided
+- Tests use temporary database with inline authentication pattern (monkeypatch password hash, post /auth, get session cookie, pass cookie to subsequent requests)
+- Fixed test ordering issue by using 1.1 second delay instead of 0.01 seconds (unixepoch() has 1-second precision, so 0.01s delay was insufficient to create different timestamps)
+- Test: `cd backend && uv run pytest tests/api/test_api_list_jobs.py -v` — **PASS** (4 tests)
+- Also verified: `cd backend && uv run ruff check app/api/jobs.py app/dao/jobs.py tests/api/test_api_list_jobs.py` — **PASS**
+
+---
 
 ### 2026-04-15 — P10-04: POST /jobs/preview
 - Created `backend/app/api/jobs.py` with POST /jobs/preview endpoint:

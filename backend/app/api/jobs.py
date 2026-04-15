@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 from pydantic import BaseModel
 
@@ -117,6 +119,33 @@ def commit(job_id: str, body: CommitRequest, request: Request, conn=Depends(db_d
             raise APIError("job_not_found", "No such job.", 404)
         raise
     return {"job_id": job_id, "status": "submitted"}
+
+
+@router.get("")
+def list_jobs(conn=Depends(db_dep)):
+    from ..dao.jobs import list_jobs as dao_list
+
+    jobs = dao_list(conn)
+    return {"jobs": [serialize_job(j) for j in jobs]}
+
+
+def serialize_job(j) -> dict:
+    return {
+        "id": j.id,
+        "status": j.status,
+        "total_rows": j.total_rows,
+        "cluster_count": j.cluster_count,
+        "completed_rows": j.completed_rows,
+        "error_rows": j.error_rows,
+        "est_cost_usd": round(j.est_cost_usd, 4),
+        "actual_cost_usd": round(j.actual_cost_usd, 4),
+        "created_at": datetime.fromtimestamp(j.created_at, tz=timezone.utc).isoformat(),
+        "finished_at": (
+            datetime.fromtimestamp(j.finished_at, tz=timezone.utc).isoformat()
+            if j.finished_at
+            else None
+        ),
+    }
 
 
 @router.post("/{job_id}/cancel")
