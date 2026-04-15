@@ -85,7 +85,7 @@ Key features: prompt review (optional AI validation), row subset (test with firs
       "Verify: cd frontend && pnpm test --run tests/router.test.tsx"
     ],
     "test": "cd frontend && pnpm test --run tests/router.test.tsx",
-    "passes": false
+    "passes": true
   },
   {
     "id": "P01-06",

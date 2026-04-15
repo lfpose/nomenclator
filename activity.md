@@ -2,8 +2,8 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 3
-**Current Task:** P01-05
+**Tasks Completed:** 4
+**Current Task:** P01-06
 
 ---
 
@@ -42,3 +42,13 @@
 - Created `frontend/tests/placeholder.test.tsx` (vitest 4.x for vite 8 compatibility)
 - Upgraded vitest to v4.1.4 for vite 8 compatibility
 - Test: `cd frontend && pnpm build && pnpm test --run` — **PASS** (build produces dist/index.html, 1 test passes)
+
+### 2026-04-15 — P01-05: TanStack Router with 3 empty routes
+- Created `frontend/src/routes/__root.tsx` with Outlet and 3 Link elements
+- Created `frontend/src/routes/index.tsx`, `about.tsx`, `docs.tsx` each rendering a distinct h1
+- Created `frontend/src/router.ts` with createRouter and route tree
+- Updated `frontend/src/main.tsx` to use RouterProvider
+- Created `frontend/tests/setup.ts` with @testing-library/jest-dom/vitest import
+- Created `frontend/tests/router.test.tsx` with 3 assertions using memory history and role-based queries
+- Added setupFiles to vite.config.ts for test environment
+- Test: `cd frontend && pnpm test --run tests/router.test.tsx` — **PASS** (3 tests)
