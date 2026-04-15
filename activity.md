@@ -2,12 +2,37 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 75
-**Current Task:** P10-08 (completed)
+**Tasks Completed:** 76
+**Current Task:** P10-09 (completed)
 
 ---
 
 ## Session Log
+
+### 2026-04-15 — P10-09: GET /jobs/:id
+- Extended `backend/app/api/jobs.py` with GET /jobs/{job_id} endpoint:
+  - Returns single job details including progress counts and batch information
+  - Raises APIError('job_not_found', status=404) when job does not exist
+  - Calculates cluster progress: resolved (has male_es), errored (has error), pending (remaining)
+  - Returns max retry_round from all batches using `max((b.retry_round for b in batches), default=0)`
+  - Returns `progress` object with clusters_total, clusters_resolved, clusters_pending, clusters_error
+  - Returns `batches` array with id, status, request_count, retry_round for each batch
+  - Uses `serialize_job()` helper for base job fields
+- Added import for `list_batches_for_job` from `..dao.batches`
+- Created `backend/tests/api/test_api_get_job.py` with 4 assertions:
+  - `test_get_job_returns_progress_counts`: verifies progress counts are returned correctly by marking some clusters as resolved and one as errored
+  - `test_get_job_returns_batches_array`: verifies batches array is returned (empty for preview jobs)
+  - `test_get_job_retry_round_reflects_max`: verifies retry_round reflects the maximum value from all batches (created 2 batches with retry_rounds 0 and 2, expecting 2)
+  - `test_get_job_missing_404`: verifies 404 with job_not_found error when requesting non-existent job
+- Tests use temporary database and inline authentication pattern for isolated testing
+- Fixed issues:
+  - Added missing import for `list_batches_for_job` in `get_job` function
+  - Fixed test to use `list_clusters(conn, result.job_id)` instead of `result.top_clusters` to access cluster IDs
+  - Fixed copy-paste error where test referenced `response` instead of `auth_response`
+  - Fixed `insert_batch` and `insert_request` calls to use correct keyword-only signatures
+  - Removed unused import `bulk_insert_rows` flagged by ruff
+- Test: `cd backend && uv run pytest tests/api/test_api_get_job.py -v` — **PASS** (4 tests)
+- Also verified: `cd backend && uv run ruff check app/api/jobs.py tests/api/test_api_get_job.py` — **PASS**
 
 ### 2026-04-15 — P10-08: GET /jobs
 - Extended `backend/app/api/jobs.py` with GET /jobs endpoint:

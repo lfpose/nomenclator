@@ -166,3 +166,46 @@ def cancel(job_id: str, request: Request, conn=Depends(db_dep)):
             raise APIError("invalid_state", "Job is not in a cancellable state.", 409)
         raise
     return {"ok": True}
+
+
+@router.get("/{job_id}")
+def get_job(job_id: str, conn=Depends(db_dep)):
+    """Get details for a single job including progress and batch information.
+
+    Returns the job details along with live progress information about cluster
+    resolution and batch processing status.
+    """
+    from ..dao.batches import list_batches_for_job
+    from ..dao.clusters import list_clusters
+    from ..dao.jobs import get_job as dao_get
+
+    job = dao_get(conn, job_id)
+    if job is None:
+        raise APIError("job_not_found", "No such job.", 404)
+
+    clusters = list_clusters(conn, job_id)
+    resolved = sum(1 for c in clusters if c.male_es)
+    errored = sum(1 for c in clusters if c.error)
+    pending = len(clusters) - resolved - errored
+
+    batches = list_batches_for_job(conn, job_id)
+
+    return {
+        **serialize_job(job),
+        "retry_round": max((b.retry_round for b in batches), default=0),
+        "progress": {
+            "clusters_total": len(clusters),
+            "clusters_resolved": resolved,
+            "clusters_pending": pending,
+            "clusters_error": errored,
+        },
+        "batches": [
+            {
+                "id": b.id,
+                "status": b.status,
+                "request_count": b.request_count,
+                "retry_round": b.retry_round,
+            }
+            for b in batches
+        ],
+    }

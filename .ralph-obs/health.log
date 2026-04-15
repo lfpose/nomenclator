@@ -60,3 +60,4 @@
 [2026-04-15T17:03:21+00:00] [INFO] Task P10-05 succeeded
 [2026-04-15T17:16:13+00:00] [INFO] Task P10-06 succeeded
 [2026-04-15T17:18:45+00:00] [ERROR] Agent error on task P10-07
+[2026-04-15T17:25:12+00:00] [WARN] Unknown status for task P10-08
