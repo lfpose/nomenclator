@@ -2,8 +2,8 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 83
-**Current Task:** P10-10 (completed)
+**Tasks Completed:** 84
+**Current Task:** P10-11 (completed)
 
 ---
 
@@ -168,6 +168,25 @@
 - Test: `cd backend && uv run pytest tests/api/test_download_drift.py -v` — **PASS** (3 tests)
 - Also verified: All state machine tests still pass after adding completed->failed transition
 - Also verified: `cd backend && uv run ruff check app/jobs/state_machine.py tests/jobs/test_state_machine.py tests/api/test_download_drift.py` — **PASS**
+
+### 2026-04-15 — P10-11: GET /spend
+- Created `backend/app/api/spend.py` with GET /spend endpoint:
+  - Requires authentication via `require_session` dependency
+  - Calls `check_cap()` from jobs.estimator to get current spend status
+  - Returns JSON with used_usd, cap_usd, window_days (30), and reset_date (ISO date string or None)
+  - Rounds used_usd to 4 decimal places for JSON serialization
+  - Converts reset_date_unix timestamp to ISO date string with timezone handling
+- Extended `backend/app/main.py` to import and include spend router with prefix `/spend`
+- Created `backend/tests/api/test_api_spend.py` with 3 assertions:
+  - `test_spend_empty_returns_zero`: verifies spend returns 0.0 used_usd when no entries exist
+  - `test_spend_after_entries_returns_sum`: verifies spend returns sum of entries within 30-day window
+  - `test_spend_reset_date_when_entries_exist`: verifies reset_date is approximately 30 days from oldest entry
+- Fixed issues:
+  - Used current timestamps (`int(time.time())`) instead of hardcoded 1970 timestamps to ensure entries fall within 30-day window
+  - Fixed timezone comparison by removing timezone from reset_date (ISO dates are naive by default)
+- Tests use same pattern as other API tests: temp database, auth, direct SQL inserts for spend log entries
+- Test: `cd backend && uv run pytest tests/api/test_api_spend.py -v` — **PASS** (3 tests)
+- Also verified: `cd backend && uv run ruff check app/api/spend.py app/main.py tests/api/test_api_spend.py` — **PASS**
 
 ---
 
