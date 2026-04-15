@@ -9,6 +9,21 @@
 
 ## Session Log
 
+### 2026-04-15 — P09-03: Auth middleware / dependency
+- Created `backend/app/auth/middleware.py` with `require_session` FastAPI dependency function
+- `require_session` validates session by checking for the 'sid' cookie and calling `validate_session()` from sessions module
+- Returns 401 HTTPException with error envelope structure: `{"detail": {"error": {"code": "unauthenticated", "message": "Session required."}}}`
+- Used FastAPI's dependency injection system with `Depends(db_dep)` to get database connection and `Request` object to access cookies
+- Created `backend/tests/auth/test_middleware.py` with 4 assertions:
+  - `test_require_session_allows_valid_cookie`: verifies valid session cookie allows request to proceed (200)
+  - `test_require_session_raises_on_missing_cookie`: verifies missing cookie returns 401 with error envelope
+  - `test_require_session_raises_on_invalid_cookie`: verifies invalid cookie returns 401 with error envelope
+  - `test_require_session_error_envelope_shape`: verifies 401 response has proper error envelope structure (detail.error.code, detail.error.message)
+- Used temporary file-based database for testing (similar to test_db_dependency.py) to avoid SQLite thread-safety issues with TestClient
+- Test: `cd backend && uv run pytest tests/auth/test_middleware.py -v` — **PASS** (4 tests)
+- Also verified: All 15 auth tests pass (5 from P09-01 + 6 from P09-02 + 4 from P09-03)
+- Also verified: `cd backend && uv run ruff check app/auth/middleware.py tests/auth/test_middleware.py` — **PASS**
+
 ### 2026-04-15 — P09-02: Session token + DB storage
 - Created `backend/app/auth/sessions.py` with three functions:
   - `create_session(conn, ttl_seconds: int = 2592000) -> str`: generates a secure random 64-char hex session token using `secrets.token_hex(32)`, computes SHA-256 hash, stores only the hash via sessions_dao.create_session, returns raw token for cookie
