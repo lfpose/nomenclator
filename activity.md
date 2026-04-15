@@ -2,8 +2,8 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 14
-**Current Task:** P02-07
+**Tasks Completed:** 15
+**Current Task:** P02-08
 
 ---
 
@@ -141,3 +141,13 @@
 - count_unresolved_clusters: counts clusters where all answer fields and error are NULL
 - Created `backend/tests/dao/test_clusters.py` with 5 assertions
 - Test: `cd backend && uv run pytest tests/dao/test_clusters.py -v` — **PASS** (5 tests)
+
+### 2026-04-15 — P02-08: DAO: batches
+- Created `backend/app/dao/batches.py` with Batch dataclass and 5 functions: insert_batch, get_batch, update_batch_status, list_batches_for_job, list_non_terminal_batches
+- insert_batch: inserts a batch with auto-generated submitted_at timestamp
+- get_batch: retrieves a batch by ID or returns None
+- update_batch_status: updates status and optionally sets polled_at/completed_at timestamps
+- list_batches_for_job: returns all batches for a job ordered by retry_round ASC
+- list_non_terminal_batches: returns all batches for non-terminal jobs (not completed/failed/cancelled)
+- Created `backend/tests/dao/test_batches.py` with 4 assertions
+- Test: `cd backend && uv run pytest tests/dao/test_batches.py -v` — **PASS** (4 tests)
