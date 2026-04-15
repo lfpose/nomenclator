@@ -2,8 +2,8 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 63
-**Current Task:** P08-08
+**Tasks Completed:** 64
+**Current Task:** P09-01
 
 ---
 
@@ -20,6 +20,22 @@
 - Test: `cd backend && uv run pytest tests/worker/test_e2e_happy.py -v` — **PASS** (3 tests)
 - Also verified: All 31 worker tests pass
 - Also verified: `cd backend && uv run ruff check tests/worker/test_e2e_happy.py` — **PASS**
+
+---
+
+## Session Log
+
+### 2026-04-15 — P08-09: End-to-end with stragglers recovery
+- Created `backend/tests/worker/test_e2e_stragglers.py` with 3 assertions testing the stragglers recovery mechanism:
+  - `test_e2e_stragglers_recovered_via_retry`: creates 10 clusters, completes first batch with 9 results (missing cluster 5), worker.tick() submits retry, retry batch completes missing result, final tick completes job with all clusters populated
+  - `test_e2e_two_batch_rows_after_retry`: verifies retry creates second batch with correct parent_batch_id relationship
+  - `test_e2e_final_state_is_completed_not_failed`: verifies successful straggler recovery results in completed state, not failed, with error_rows == 0
+- Tests use temp_db fixture (file-based database) for multiple connection support since worker.tick() creates its own connections
+- Tests use FakeAnthropicBatchClient to simulate Anthropic returning partial results, then complete results on retry
+- Key insight: stragglers are detected by missing IDs in the tool output, which triggers retry submission with halved TPR
+- Test: `cd backend && uv run pytest tests/worker/test_e2e_stragglers.py -v` — **PASS** (3 tests)
+- Also verified: All 34 worker tests pass
+- Also verified: `cd backend && uv run ruff check tests/worker/test_e2e_stragglers.py` — **PASS**
 
 ---
 
