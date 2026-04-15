@@ -2,8 +2,8 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 12
-**Current Task:** P02-05
+**Tasks Completed:** 13
+**Current Task:** P02-06
 
 ---
 
@@ -120,3 +120,13 @@
 - Created `backend/tests/dao/test_jobs.py` with 9 assertions covering all functions including row_subset and dry_run params
 - Fixed test_list_jobs_ordered_newest_first to use explicit timestamps for reliable ordering
 - Test: `cd backend && uv run pytest tests/dao/test_jobs.py -v` — **PASS** (9 tests)
+
+### 2026-04-15 — P02-06: DAO: job_rows
+- Created `backend/app/dao/job_rows.py` with JobRow dataclass and 4 functions: bulk_insert_rows, list_rows, assign_cluster, clear_clusters
+- bulk_insert_rows: inserts rows with (row_index, original, normalized) tuples using executemany
+- list_rows: returns rows ordered by row_index with is_representative converted from int to bool
+- assign_cluster: bulk updates cluster_id and marks representative row; clears is_representative flag for all rows first
+- clear_clusters: nulls cluster_id and clears is_representative flag for all rows in a job
+- Created `backend/tests/dao/test_job_rows.py` with 5 assertions including 10k row performance guard
+- Fixed tests to create clusters first before assigning (required for FOREIGN KEY constraint)
+- Test: `cd backend && uv run pytest tests/dao/test_job_rows.py -v` — **PASS** (5 tests)

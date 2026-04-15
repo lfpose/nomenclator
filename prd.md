@@ -213,7 +213,7 @@ Key features: prompt review (optional AI validation), row subset (test with firs
       "Verify: cd backend && uv run pytest tests/dao/test_job_rows.py -v"
     ],
     "test": "cd backend && uv run pytest tests/dao/test_job_rows.py -v",
-    "passes": false
+    "passes": true
   },
   {
     "id": "P02-07",
