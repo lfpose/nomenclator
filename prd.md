@@ -1168,7 +1168,7 @@ Key features: prompt review (optional AI validation), row subset (test with firs
       "Verify: cd backend && uv run pytest tests/api -v (all API tests pass)"
     ],
     "test": "cd backend && uv run pytest tests/api -v",
-    "passes": false
+    "passes": true
   },
   {
     "id": "P10-14",

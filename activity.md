@@ -2,12 +2,37 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 86
-**Current Task:** P10-14 (completed)
+**Tasks Completed:** 87
+**Current Task:** P10-13 (completed)
 
 ---
 
 ## Session Log
+
+### 2026-04-15 — P10-13: Router wiring + test fixture for authenticated client
+- Verified that all routers are already wired in `backend/app/main.py`:
+  - auth_router (tags=["auth"])
+  - jobs_router (prefix="/jobs", tags=["jobs"])
+  - spend_router (prefix="/spend", tags=["spend"])
+  - health_router (prefix="/health", tags=["health"])
+- Extended `backend/tests/conftest.py` with three new fixtures:
+  - `reset_rate_limiters` (autouse): Clears all rate limiters (AUTH_LIMITER, COMMIT_LIMITER, GENERAL_LIMITER) before and after each test to ensure test isolation
+  - `temp_database`: Creates a temporary file-based database for tests that need TestClient isolation (TestClient runs requests in a separate thread, so in-memory databases don't work well)
+  - `logged_in_client`: Provides an authenticated TestClient with a temporary database, using unique IP addresses for rate limiting isolation
+- Updated `backend/tests/api/test_api_health.py` to use `temp_database` fixture:
+  - Added `client` fixture that depends on `temp_database`
+  - Updated all 4 tests to use the `client` fixture instead of creating TestClient directly
+- Updated `backend/tests/api/test_request_logging.py` to use `temp_database` fixture:
+  - Added `client` fixture that depends on `temp_database`
+  - Updated test to use the `client` fixture
+- Fixed `backend/tests/api/test_api_preview.py` CSV format:
+  - Changed CSV content from single line with comma-separated values to multi-line format (one job title per line)
+  - This ensures the parser returns 5 rows instead of 1 row with 5 columns
+- Test: `cd backend && uv run pytest tests/api -v` — **PASS** (57 tests)
+- Also verified: `cd backend && uv run ruff check tests/conftest.py tests/api/test_api_health.py tests/api/test_request_logging.py` — **PASS**
+- Note: All routers were already wired from previous work; main task was to add test fixtures and ensure all API tests pass
+
+---
 
 ### 2026-04-15 — P10-09: GET /jobs/:id
 - Extended `backend/app/api/jobs.py` with GET /jobs/{job_id} endpoint:

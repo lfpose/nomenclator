@@ -5,11 +5,16 @@ from fastapi.testclient import TestClient
 from app.main import create_app
 
 
-def test_logs_contain_method_path_status(caplog):
+@pytest.fixture
+def client(temp_database):
+    """Create a TestClient with a temporary database."""
+    return TestClient(create_app())
+
+
+def test_logs_contain_method_path_status(caplog, client):
     """Verify logs contain method, path, status, and duration."""
     caplog.set_level("INFO", logger="nomenclator.http")
 
-    client = TestClient(create_app())
     response = client.get("/health")
 
     assert response.status_code == 200

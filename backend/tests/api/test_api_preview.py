@@ -76,7 +76,11 @@ def test_preview_with_csv_file_returns_payload():
 
         try:
             # Create a simple CSV file with job titles
-            csv_content = b"Jefe de Compras,Jefe de ventas,Ingeniero de Software,Director de Marketing,Gerente de Recursos Humanos"
+            csv_content = b"""Jefe de Compras
+Jefe de ventas
+Ingeniero de Software
+Director de Marketing
+Gerente de Recursos Humanos"""
 
             # Upload the CSV file
             response = test_client.post(

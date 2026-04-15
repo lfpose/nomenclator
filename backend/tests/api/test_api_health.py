@@ -5,16 +5,20 @@ from fastapi.testclient import TestClient
 from app.main import create_app
 
 
-def test_health_returns_200():
+@pytest.fixture
+def client(temp_database):
+    """Create a TestClient with a temporary database."""
+    return TestClient(create_app())
+
+
+def test_health_returns_200(client):
     """Verify health endpoint returns 200."""
-    client = TestClient(create_app())
     response = client.get("/health")
     assert response.status_code == 200
 
 
-def test_health_reports_db_ok():
+def test_health_reports_db_ok(client):
     """Verify health endpoint reports database status."""
-    client = TestClient(create_app())
     response = client.get("/health")
     assert response.status_code == 200
     data = response.json()
@@ -22,7 +26,7 @@ def test_health_reports_db_ok():
     assert data["db"] in ("ok", "error")
 
 
-def test_health_reports_worker_heartbeat_when_set():
+def test_health_reports_worker_heartbeat_when_set(temp_database):
     """Verify health endpoint reports worker heartbeat when worker exists."""
     from app.main import create_app
     from app.worker.poller import Worker
@@ -45,9 +49,8 @@ def test_health_reports_worker_heartbeat_when_set():
     assert data["worker_last_tick_seconds_ago"] is not None
 
 
-def test_health_no_auth_required():
+def test_health_no_auth_required(client):
     """Verify health endpoint does not require authentication."""
-    client = TestClient(create_app())
     response = client.get("/health")
     # Should not return 401 unauthenticated error
     assert response.status_code == 200
