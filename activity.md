@@ -2,8 +2,8 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 15
-**Current Task:** P02-08
+**Tasks Completed:** 16
+**Current Task:** P02-09
 
 ---
 
@@ -151,3 +151,14 @@
 - list_non_terminal_batches: returns all batches for non-terminal jobs (not completed/failed/cancelled)
 - Created `backend/tests/dao/test_batches.py` with 4 assertions
 - Test: `cd backend && uv run pytest tests/dao/test_batches.py -v` — **PASS** (4 tests)
+
+### 2026-04-15 — P02-09: DAO: batch_requests
+- Created `backend/app/dao/batch_requests.py` with BatchRequest dataclass and 6 functions: insert_request, list_requests_for_batch, mark_request_completed, mark_request_failed, mark_request_missing, list_pending_requests
+- insert_request: inserts a request with cluster_ids serialized as JSON, status defaults to 'pending'
+- list_requests_for_batch: returns all requests for a batch, deserializing cluster_ids from JSON
+- mark_request_completed: updates status to 'completed' and stores raw_response
+- mark_request_failed: updates status to 'failed', sets error, and optionally stores raw_response
+- mark_request_missing: updates status to 'missing' (no response from Anthropic)
+- list_pending_requests: returns only requests with status='pending'
+- Created `backend/tests/dao/test_batch_requests.py` with 5 assertions
+- Test: `cd backend && uv run pytest tests/dao/test_batch_requests.py -v` — **PASS** (5 tests)
