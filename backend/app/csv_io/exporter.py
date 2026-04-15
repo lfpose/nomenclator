@@ -1,4 +1,6 @@
 from dataclasses import dataclass
+import csv
+import io
 
 
 @dataclass(frozen=True)
@@ -8,6 +10,9 @@ class ExportRow:
     female_es: str
     category: str
     error: str
+
+
+COLUMN_ORDER = ["original", "male_es", "female_es", "category", "error"]
 
 
 def fetch_export_rows(conn, job_id: str) -> list[ExportRow]:
@@ -25,3 +30,13 @@ def fetch_export_rows(conn, job_id: str) -> list[ExportRow]:
     """
     rows = conn.execute(sql, (job_id,)).fetchall()
     return [ExportRow(*tuple(r)) for r in rows]
+
+
+def write_csv_bytes(rows: list[ExportRow]) -> bytes:
+    buf = io.StringIO()
+    buf.write("\ufeff")
+    writer = csv.writer(buf, lineterminator="\r\n", quoting=csv.QUOTE_MINIMAL)
+    writer.writerow(COLUMN_ORDER)
+    for r in rows:
+        writer.writerow([r.original, r.male_es, r.female_es, r.category, r.error])
+    return buf.getvalue().encode("utf-8")

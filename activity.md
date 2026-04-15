@@ -2,8 +2,8 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 77
-**Current Task:** P11-01 (completed)
+**Tasks Completed:** 78
+**Current Task:** P11-02 (completed)
 
 ---
 
@@ -74,6 +74,25 @@
   - Added required fields (representative_original, normalized_key, member_count) when inserting into clusters table
 - Test: `cd backend && uv run pytest tests/csv/test_export_query.py -v` — **PASS** (5 tests)
 - Also verified: `cd backend && uv run ruff check app/csv_io/exporter.py tests/csv/test_export_query.py` — **PASS**
+
+### 2026-04-15 — P11-02: CSV writer (BOM + CRLF)
+- Extended `backend/app/csv_io/exporter.py` with `write_csv_bytes()` function
+- Added imports for `csv` and `io` modules
+- Added `COLUMN_ORDER` constant with column names: ["original", "male_es", "female_es", "category", "error"]
+- `write_csv_bytes()` writes rows to bytes with:
+  - UTF-8 BOM (`\ufeff`) prepended for Excel compatibility
+  - CRLF line endings (`\r\n`) for Windows compatibility
+  - `csv.QUOTE_MINIMAL` quoting (quotes only when field contains comma, quote, or newline)
+  - Header row as the first line after BOM
+- Created `backend/tests/csv/test_csv_writer.py` with 6 assertions:
+  - `test_output_starts_with_bom`: verifies output starts with UTF-8 BOM bytes (`\xef\xbb\xbf`)
+  - `test_output_has_header_row`: verifies output has a header row with column names
+  - `test_output_has_5_columns_in_correct_order`: verifies data rows have 5 columns in correct order
+  - `test_output_uses_crlf_line_endings`: verifies output uses CRLF line endings (not bare LF)
+  - `test_special_characters_quoted_correctly`: verifies titles containing commas, quotes, newlines are quoted correctly
+  - `test_unicode_accents_preserved`: verifies unicode accents (ñ, í, ó) are preserved in output
+- Test: `cd backend && uv run pytest tests/csv/test_csv_writer.py -v` — **PASS** (6 tests)
+- Also verified: `cd backend && uv run ruff check app/csv_io/exporter.py tests/csv/test_csv_writer.py` — **PASS**
 
 ---
 
