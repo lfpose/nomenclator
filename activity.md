@@ -2,12 +2,24 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 41
-**Current Task:** P06-02
+**Tasks Completed:** 42
+**Current Task:** P06-03
 
 ---
 
 ## Session Log
+
+### 2026-04-15 — P06-03: Record actual spend
+- Extended `backend/app/jobs/estimator.py` with `record_actual_spend()` function
+- `record_actual_spend()` computes USD from input and output token counts using HAIKU_BATCH_IN_USD_PER_MTOK and HAIKU_BATCH_OUT_USD_PER_MTOK constants
+- Inserts spend log entry via `insert_spend()` with current timestamp and optional batch_id
+- Created `backend/tests/jobs/test_record_spend.py` with 3 assertions:
+  - `test_record_actual_spend_inserts_row`: verifies spend is inserted and sum_last_30_days returns the amount
+  - `test_record_actual_spend_returns_correct_usd`: verifies USD calculation (100K input + 50K output = $0.14)
+  - `test_record_actual_spend_zero_tokens_returns_zero`: verifies zero tokens returns $0
+- Fixed FOREIGN KEY constraint by creating jobs before inserting spend_log entries
+- Test: `cd backend && uv run pytest tests/jobs/test_record_spend.py -v` — **PASS** (3 tests)
+- Also verified: `cd backend && uv run ruff check app/jobs/estimator.py tests/jobs/test_record_spend.py` — **PASS**
 
 ### 2026-04-15 — P06-02: Cap check
 - Extended `backend/app/jobs/estimator.py` with `CapCheckResult` dataclass and `check_cap()` function

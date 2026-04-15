@@ -1,9 +1,15 @@
 """Cost estimation helpers for jobs."""
 
+import time
 from dataclasses import dataclass
 
-from ..dao.spend_log import reset_date_approx, sum_last_30_days
-from ..pricing import MONTHLY_SPEND_CAP_USD, estimate_cost
+from ..dao.spend_log import insert_spend, reset_date_approx, sum_last_30_days
+from ..pricing import (
+    HAIKU_BATCH_IN_USD_PER_MTOK,
+    HAIKU_BATCH_OUT_USD_PER_MTOK,
+    MONTHLY_SPEND_CAP_USD,
+    estimate_cost,
+)
 
 
 def estimate_job_cost(cluster_count: int, titles_per_request: int) -> float:
@@ -83,3 +89,35 @@ def check_cap(
         cap_usd=MONTHLY_SPEND_CAP_USD,
         reset_date_unix=reset,
     )
+
+
+def record_actual_spend(
+    conn,
+    *,
+    job_id: str,
+    batch_id: str | None,
+    input_tokens: int,
+    output_tokens: int,
+) -> float:
+    """Record actual spend from Anthropic batch API response.
+
+    Computes USD from input and output token counts and inserts
+    a spend log entry.
+
+    Args:
+        conn: Database connection
+        job_id: Job ID
+        batch_id: Optional batch ID (None for jobs with no batch,
+            e.g. during testing)
+        input_tokens: Number of input tokens consumed
+        output_tokens: Number of output tokens consumed
+
+    Returns:
+        The computed USD amount
+    """
+    usd = (
+        input_tokens / 1_000_000 * HAIKU_BATCH_IN_USD_PER_MTOK
+        + output_tokens / 1_000_000 * HAIKU_BATCH_OUT_USD_PER_MTOK
+    )
+    insert_spend(conn, job_id=job_id, batch_id=batch_id, usd=usd, at=int(time.time()))
+    return usd
