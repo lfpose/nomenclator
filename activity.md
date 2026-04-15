@@ -2,12 +2,29 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 112
-**Current Task:** P14-10 (completed)
+**Tasks Completed:** 113
+**Current Task:** P14-11 (completed)
 
 ---
 
 ## Session Log
+
+### 2026-04-15 — P14-11: Cancel action
+- Verified that JobStatusPanel.tsx already had confirmation dialog implemented from P14-09 with:
+  - `showCancelConfirm` state to track dialog visibility
+  - Two confirmation buttons: "Keep running" (dismiss) and "Confirm cancel" (destructive)
+  - Loading state while cancelling with spinner
+  - Cancel button only visible for non-terminal jobs
+- Created `frontend/tests/cancel-action.test.tsx` with 4 assertions:
+  - `confirm dialog shown before cancel`: verifies clicking Cancel button shows "Keep running" and "Confirm cancel" buttons
+  - `cancel API called on confirm`: verifies jobsApi.cancel is called with jobId and onCancel callback is invoked
+  - `cancel not called on dismiss`: verifies clicking "Keep running" dismisses dialog without calling API or callback
+  - `UI shows cancelled state after success`: verifies cancel flow completes successfully with API call and callback
+- Mocked useJobPolling and jobsApi dependencies in tests
+- Used fireEvent to simulate button clicks and waitFor for async state updates
+- Test: `cd frontend && pnpm test --run tests/cancel-action.test.tsx` — **PASS** (4 tests)
+- Also verified: `cd frontend && pnpm tsc --noEmit` — **PASS**
+- Also verified: `cd frontend && pnpm build` — **PASS**
 
 ### 2026-04-15 — P14-10: Notifications integration
 - Created `frontend/src/hooks/useNotification.ts` with notification management hook:
