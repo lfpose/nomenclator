@@ -2,12 +2,30 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 65
-**Current Task:** P09-02
+**Tasks Completed:** 66
+**Current Task:** P09-03
 
 ---
 
 ## Session Log
+
+### 2026-04-15 — P09-02: Session token + DB storage
+- Created `backend/app/auth/sessions.py` with three functions:
+  - `create_session(conn, ttl_seconds: int = 2592000) -> str`: generates a secure random 64-char hex session token using `secrets.token_hex(32)`, computes SHA-256 hash, stores only the hash via sessions_dao.create_session, returns raw token for cookie
+  - `validate_session(conn, raw_sid: str | None) -> bool`: validates a session by hashing the raw token and checking via sessions_dao.get_valid_session; returns False for None/empty values
+  - `destroy_session(conn, raw_sid: str) -> None`: destroys a session by hashing the raw token and calling sessions_dao.delete_session
+- Used Python's `hashlib.sha256` for deterministic hashing and `secrets.token_hex(32)` for cryptographically secure 256-bit random tokens
+- Created `backend/tests/auth/test_sessions.py` with 6 assertions:
+  - `test_create_session_returns_raw_id`: verifies create_session returns a 64-char hex string with valid characters
+  - `test_validate_session_accepts_valid_cookie`: validates that a valid session token returns True
+  - `test_validate_session_rejects_none_or_empty`: verifies that None and empty string return False
+  - `test_validate_session_rejects_unknown`: verifies that unknown/invalid tokens return False
+  - `test_destroy_session_invalidates`: verifies that destroying a session makes validate_session return False
+  - `test_db_stores_hash_not_raw`: queries sessions table directly to verify stored id is a 64-char hex string and not equal to the raw token
+- All tests verify the security property: only SHA-256 hashes are stored in the database, never raw session tokens
+- Test: `cd backend && uv run pytest tests/auth/test_sessions.py -v` — **PASS** (6 tests)
+- Also verified: All 11 auth tests pass (5 from P09-01 + 6 from P09-02)
+- Also verified: `cd backend && uv run ruff check app/auth/sessions.py tests/auth/test_sessions.py` — **PASS**
 
 ### 2026-04-15 — P09-01: Argon2 password verify
 - Created `backend/app/auth/passwords.py` with `hash_password(plain: str) -> str` and `verify_password(hash_str: str, plain: str) -> bool` functions
