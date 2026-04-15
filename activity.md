@@ -2,12 +2,29 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 94
-**Current Task:** P13-01 (completed)
+**Tasks Completed:** 95
+**Current Task:** P13-02 (completed)
 
 ---
 
 ## Session Log
+
+### 2026-04-15 — P13-02: Theme provider and toggle
+- Created `frontend/src/lib/theme.ts` with Theme type and two functions:
+  - `getInitialTheme()`: reads from localStorage, falls back to `prefers-color-scheme: dark` media query
+  - `applyTheme()`: toggles 'dark' class on documentElement and saves to localStorage
+- Created `frontend/src/components/ThemeToggle.tsx` using shadcn Button with sun/moon icons from lucide-react
+- Component maintains internal state with useState, applies theme via useEffect on mount and changes, toggles between light/dark on click
+- Created `frontend/tests/theme.test.tsx` with 3 assertions:
+  - `test("applies dark class on toggle")`: verifies dark class is toggled on/off by clicking the button
+  - `test("persists to localStorage")`: verifies localStorage is updated with 'dark' and 'light' values
+  - `test("restores from localStorage on mount")`: verifies component applies dark class when localStorage contains 'dark'
+- Fixed jsdom matchMedia issue by using `window.matchMedia = vi.fn()` instead of `vi.spyOn` (matchMedia is not a function in jsdom)
+- Test: `cd frontend && pnpm test --run tests/theme.test.tsx` — **PASS** (3 tests)
+- Also verified: `cd frontend && pnpm build` — **PASS**
+- Also verified: `cd frontend && pnpm tsc --noEmit` — **PASS**
+
+---
 
 ### 2026-04-15 — P13-01: Tailwind + shadcn globals
 - Replaced `frontend/src/styles/globals.css` with HSL-based CSS variables from spec/11-design-system.md (light mode: --background: 0 0% 98%, dark mode: --background: 0 0% 4%)

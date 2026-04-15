@@ -103,3 +103,5 @@
 [2026-04-15T18:35:59+00:00] [ERROR] Agent error on task P12-04
 [2026-04-15T18:40:19+00:00] [ERROR] Agent error on task P12-06
 [2026-04-15T18:52:10+00:00] [WARN] Task P12-07 test failed (stuck: 0)
+[2026-04-15T18:56:34+00:00] [WARN] Task P12-08 test failed (stuck: 0)
+[2026-04-15T19:03:23+00:00] [WARN] Unknown status for task P13-01
