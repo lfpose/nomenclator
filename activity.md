@@ -2,12 +2,37 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 102
-**Current Task:** P14-01 (completed)
+**Tasks Completed:** 103
+**Current Task:** P14-02 (completed)
 
 ---
 
 ## Session Log
+
+### 2026-04-15 — P14-02: Form state hook
+- Created `frontend/src/hooks/useToolForm.ts` with ToolState discriminated union and useReducer implementation:
+  - ToolState type: 12 states including idle, input_loaded, previewing, previewed, reclustering, reviewing_prompt, submitting, running, completed, failed, cancelled
+  - FormState interface: row_subset_mode ("all" | "first_n" | "random_n"), row_subset_n (number | null), is_dry_run (boolean)
+  - ToolAction type: 12 action types for state transitions (LOAD_INPUT, START_PREVIEW, PREVIEW_SUCCESS, START_RECLUSTER, RECLUSTER_SUCCESS, START_REVIEW_PROMPT, REVIEW_PROMPT_SUCCESS, START_COMMIT, COMMIT_SUCCESS, POLL_UPDATE, POLL_FAILED, POLL_CANCELLED, RESET)
+  - toolReducer function: handles all state transitions with proper validation (e.g., only reclustering from previewed state, only poll updates from running state)
+  - useToolForm hook: returns state, action dispatch functions (loadInput, startPreview, previewSuccess, etc.), and form state setters (setRowSubsetMode, setRowSubsetN, setDryRun)
+- Form state setters return new state objects rather than dispatching actions (for previewing before dispatching)
+- Reset action clears toolState to idle and resets form fields to initial values
+- Created `frontend/tests/use-tool-form.test.tsx` with 9 assertions:
+  - `idle → input_loaded on file set`: verifies loading file input transitions from idle to input_loaded state
+  - `input_loaded → previewing → previewed on API success`: verifies preview flow through previewing to previewed state
+  - `previewed → reclustering → previewed on threshold change`: verifies recluster flow starts from previewed, goes to reclustering, and returns to previewed with new data
+  - `previewed → submitting → running on commit`: verifies commit flow through submitting to running state
+  - `running → completed when poll returns completed`: verifies poll update with completed status transitions to completed state
+  - `running → failed when poll returns failed`: verifies poll failed action transitions to failed state with error message
+  - `reviewing_prompt state on review click`: verifies review prompt state can be entered and review success returns to same state
+  - `row subset state tracked`: verifies row_subset_mode and row_subset_n are tracked correctly, including clearing row_subset_n when mode changes to "all"
+  - `dry run toggle tracked`: verifies is_dry_run boolean is tracked correctly
+- Test: `cd frontend && pnpm test --run tests/use-tool-form.test.tsx` — **PASS** (9 tests)
+- Also verified: `cd frontend && pnpm tsc --noEmit` — **PASS**
+- Also verified: `cd frontend && pnpm build` — **PASS**
+
+---
 
 ### 2026-04-15 — P14-01: API client functions for jobs
 - Created `frontend/src/lib/jobs-api.ts` with typed wrappers around all `/jobs*` and `/spend` endpoints:
