@@ -2,8 +2,8 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 85
-**Current Task:** P10-12 (completed)
+**Tasks Completed:** 86
+**Current Task:** P10-14 (completed)
 
 ---
 
@@ -207,6 +207,21 @@
 - Test uses Worker class with fake client and manual heartbeat setting for worker test
 - Test: `cd backend && uv run pytest tests/api/test_api_health.py -v` — **PASS** (4 tests)
 - Also verified: `cd backend && uv run ruff check app/api/health.py app/main.py tests/api/test_api_health.py` — **PASS**
+
+### 2026-04-15 — P10-14: HTTP request logging middleware
+- Created `backend/app/api/logging_mw.py` with `RequestLoggingMiddleware` class:
+  - Extends Starlette's BaseHTTPMiddleware
+  - Logs every HTTP request with structured logging using "http.request" message
+  - Captures method, path, status code, and duration_ms for each request
+  - Uses Python's time module to measure request duration in milliseconds
+  - Logs at INFO level to nomenclator.http logger
+- Updated `backend/app/main.py` to import and add middleware to app via `app.add_middleware(RequestLoggingMiddleware)`
+- Created `backend/tests/api/test_request_logging.py` with 1 assertion:
+  - `test_logs_contain_method_path_status`: verifies logs contain method, path, status, and duration_ms via caplog
+- Test uses caplog to capture structured log entries and verify expected fields are present
+- Test makes request to /health endpoint and verifies logged values match the request (GET method, /health path, 200 status)
+- Test: `cd backend && uv run pytest tests/api/test_request_logging.py -v` — **PASS** (1 test)
+- Also verified: `cd backend && uv run ruff check app/api/logging_mw.py app/main.py tests/api/test_request_logging.py` — **PASS**
 
 ---
 
