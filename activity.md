@@ -2,12 +2,29 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 99
-**Current Task:** P13-06 (completed)
+**Tasks Completed:** 100
+**Current Task:** P12-09 (completed)
 
 ---
 
 ## Session Log
+
+### 2026-04-15 — P12-09: Test 9: Pre-write assertion fires on drift
+- Created `backend/tests/reliability/test_09_drift_assertion.py` with 3 assertions:
+  - `test_drift_assertion_fires_returns_500`: verifies that deleting a job_row after completion causes download to return 500 with internal_error code
+  - `test_drift_transitions_job_to_failed`: verifies that row count drift causes job to transition from completed to failed state
+  - `test_drift_never_returns_csv_bytes`: verifies that drift never returns CSV bytes (always returns JSON error envelope)
+- Tests use `logged_in_client` fixture to get an authenticated TestClient with temporary file-based database
+- Created helper function `_create_completed_job_in_db()` that creates a completed job in any given database connection (simplified version of run_e2e)
+- Tests simulate row count drift by deleting a job_row directly via SQL after job completion
+- The download endpoint already handles `RowCountDriftError` correctly (from P11-05): catches the exception, transitions job to failed with reason="row_count_drift", and raises `APIError("internal_error", "Row count drift detected.", 500)`
+- Fixed issue: needed to use the same database for creating the job and downloading the CSV. The `logged_in_client` fixture uses a temporary file-based database, so I created a direct SQLite connection to the same database path using `settings.database_path`
+- Added missing import for `mark_request_completed` from `app.dao.batch_requests`
+- Removed unused `pytest` import flagged by ruff
+- Test: `cd backend && uv run pytest tests/reliability/test_09_drift_assertion.py -v` — **PASS** (3 tests)
+- Also verified: `cd backend && uv run ruff check tests/reliability/test_09_drift_assertion.py` — **PASS**
+
+---
 
 ### 2026-04-15 — P13-06: DropZone component
 - Created `frontend/src/components/DropZone.tsx` with:

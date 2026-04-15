@@ -109,3 +109,4 @@
 [2026-04-15T19:07:06+00:00] [ERROR] Agent error on task P13-03
 [2026-04-15T19:10:38+00:00] [ERROR] Agent error on task P13-04
 [2026-04-15T19:14:36+00:00] [ERROR] Agent error on task P13-05
+[2026-04-15T19:16:21+00:00] [WARN] Unknown status for task P13-06
