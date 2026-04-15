@@ -3,6 +3,7 @@ from fastapi import FastAPI
 
 from .api.auth import router as auth_router
 from .api.errors import register_handlers
+from .api.health import router as health_router
 from .api.jobs import router as jobs_router
 from .api.spend import router as spend_router
 from .anthropic.client import RealAnthropicClient
@@ -36,10 +37,7 @@ def create_app() -> FastAPI:
     app.include_router(auth_router, tags=["auth"])
     app.include_router(jobs_router, prefix="/jobs", tags=["jobs"])
     app.include_router(spend_router, prefix="/spend", tags=["spend"])
-
-    @app.get("/health")
-    def health():
-        return {"ok": True, "version": settings.version}
+    app.include_router(health_router, prefix="/health", tags=["health"])
 
     return app
 

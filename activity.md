@@ -2,8 +2,8 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 84
-**Current Task:** P10-11 (completed)
+**Tasks Completed:** 85
+**Current Task:** P10-12 (completed)
 
 ---
 
@@ -187,6 +187,26 @@
 - Tests use same pattern as other API tests: temp database, auth, direct SQL inserts for spend log entries
 - Test: `cd backend && uv run pytest tests/api/test_api_spend.py -v` — **PASS** (3 tests)
 - Also verified: `cd backend && uv run ruff check app/api/spend.py app/main.py tests/api/test_api_spend.py` — **PASS**
+
+### 2026-04-15 — P10-12: GET /health
+- Created `backend/app/api/health.py` with GET /health endpoint:
+  - No authentication required (no require_session dependency)
+  - Checks database connectivity by executing SELECT 1 query
+  - Reports DB status as "ok" or "error"
+  - Reports worker heartbeat if worker is available in app.state
+  - Calculates time since last tick (worker_last_tick_seconds_ago)
+  - Overall ok status is True if DB is ok AND worker heartbeat is recent (< 120 seconds) or worker not started
+  - Returns JSON with ok, db, worker_heartbeat (ISO datetime), worker_last_tick_seconds_ago, and version
+- Updated `backend/app/main.py` to import and include health router with prefix `/health`
+  - Removed old basic health endpoint that only returned ok and version
+- Created `backend/tests/api/test_api_health.py` with 4 assertions:
+  - `test_health_returns_200`: verifies health endpoint returns 200
+  - `test_health_reports_db_ok`: verifies database status is reported ("ok" or "error")
+  - `test_health_reports_worker_heartbeat_when_set`: verifies worker heartbeat is reported when worker exists with last_tick_at set
+  - `test_health_no_auth_required`: verifies health endpoint does not require authentication (no 401 response)
+- Test uses Worker class with fake client and manual heartbeat setting for worker test
+- Test: `cd backend && uv run pytest tests/api/test_api_health.py -v` — **PASS** (4 tests)
+- Also verified: `cd backend && uv run ruff check app/api/health.py app/main.py tests/api/test_api_health.py` — **PASS**
 
 ---
 
