@@ -2,12 +2,26 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 64
-**Current Task:** P09-01
+**Tasks Completed:** 65
+**Current Task:** P09-02
 
 ---
 
 ## Session Log
+
+### 2026-04-15 — P09-01: Argon2 password verify
+- Created `backend/app/auth/passwords.py` with `hash_password(plain: str) -> str` and `verify_password(hash_str: str, plain: str) -> bool` functions
+- Used `argon2-cffi` library with PasswordHasher configured with time_cost=3, memory_cost=65536, parallelism=4
+- `hash_password()` returns an argon2 hash with random salt (same password hashed twice produces different hashes)
+- `verify_password()` catches `VerifyMismatchError` and `InvalidHashError` exceptions and returns False for invalid hashes
+- Created `backend/tests/auth/test_passwords.py` with 5 assertions:
+  - `test_hash_is_not_plaintext`: verifies hash is not equal to plaintext and starts with "$argon2"
+  - `test_verify_correct_password_returns_true`: verifies correct password verification succeeds
+  - `test_verify_wrong_password_returns_false`: verifies wrong password verification fails
+  - `test_verify_malformed_hash_returns_false`: verifies malformed hash returns False
+  - `test_hash_twice_produces_different_hashes`: verifies argon2 uses random salt (deterministic verification but non-deterministic hashing)
+- Test: `cd backend && uv run pytest tests/auth/test_passwords.py -v` — **PASS** (5 tests)
+- Also verified: `cd backend && uv run ruff check app/auth/passwords.py tests/auth/test_passwords.py` — **PASS**
 
 ### 2026-04-15 — P08-08: End-to-end happy path (mocked)
 - Created `backend/tests/worker/test_e2e_happy.py` with 3 assertions testing the full worker lifecycle:
