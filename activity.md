@@ -2,12 +2,36 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 54
-**Current Task:** P07-10
+**Tasks Completed:** 55
+**Current Task:** P07-11
 
 ---
 
 ## Session Log
+
+### 2026-04-15 — P07-11: Dry-run mode in commit
+- Extended `commit_job` function in `backend/app/jobs/service.py` with `is_dry_run` parameter
+- When `is_dry_run=True`, the function:
+  - Bypasses state machine validation (uses `jobs_dao.update_job_status` directly)
+  - Skips concurrency check (`assert_no_running_job`)
+  - Skips spend cap check
+  - Generates fake responses for all clusters using `generate_dry_run_results` from `anthropic.dry_run`
+  - Writes fake answers (with '(M)'/'(F)' suffixes and 'DRY_RUN' category) to clusters
+  - Records $0 spend via `spend_log.insert_spend`
+  - Transitions directly to 'completed' state (bypassing normal polling/worker flow)
+  - Returns early, never calling Anthropic client
+- Added import for `time` module for timestamp in spend log entry
+- Created `backend/tests/jobs/test_commit_dry_run.py` with 6 assertions:
+  - `test_dry_run_commit_skips_anthropic_client`: verifies Anthropic client.submit_batch is never called
+  - `test_dry_run_commit_generates_fake_answers`: verifies all clusters get fake answers with '(M)'/'(F)' suffixes and 'DRY_RUN' category
+  - `test_dry_run_commit_transitions_to_completed`: verifies job transitions directly to 'completed' state
+  - `test_dry_run_commit_records_zero_spend`: verifies $0 spend entry is recorded in spend_log
+  - `test_dry_run_commit_skips_cap_check`: verifies cap check is skipped even when cap is exceeded
+  - `test_dry_run_commit_sets_is_dry_run_on_job`: verifies is_dry_run flag on job is preserved
+- Fixed ruff issues: removed duplicate imports, removed unused imports (pytest, generate_dry_run_results, ingest)
+- Test: `cd backend && uv run pytest tests/jobs/test_commit_dry_run.py -v` — **PASS** (6 tests)
+- Also verified: `cd backend && uv run ruff check app/jobs/service.py tests/jobs/test_commit_dry_run.py` — **PASS**
+- All 71 job tests pass (including 6 new dry-run tests)
 
 ### 2026-04-15 — P07-10: Prompt review service
 - Added `APIError` class to `backend/app/jobs/service.py` with code and message attributes for structured error reporting

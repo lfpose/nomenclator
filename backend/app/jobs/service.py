@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import time
 import uuid
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
@@ -373,6 +374,7 @@ def commit_job(
     prompt_override: str | None = None,
     taxonomy: str | None = None,
     titles_per_request: int | None = None,
+    is_dry_run: bool = False,
 ) -> None:
     """Commit a previewed job for processing by Anthropic.
 
@@ -383,6 +385,7 @@ def commit_job(
         prompt_override: Optional custom system prompt
         taxonomy: Optional taxonomy string for categories
         titles_per_request: Number of titles per request (uses job default if None)
+        is_dry_run: If True, skip Anthropic submission and generate fake responses
 
     Raises:
         ValueError: If job not found, invalid state, or other validation errors
@@ -396,8 +399,9 @@ def commit_job(
     if job.status != "preview":
         raise ValueError(f"invalid_state: job must be in preview state, got {job.status}")
 
-    # Step 2: Check for concurrent jobs
-    assert_no_running_job(conn)
+    # Step 2: Check for concurrent jobs (skip in dry-run mode)
+    if not is_dry_run:
+        assert_no_running_job(conn)
 
     # Step 3: Load job configuration
     template = task_templates_dao.get_template(conn, job.task_template_id)
@@ -411,6 +415,48 @@ def commit_job(
     clusters = clusters_dao.list_clusters(conn, job_id)
     if not clusters:
         raise ValueError(f"no clusters found for job: {job_id}")
+
+    # Dry-run mode: generate fake responses and complete immediately
+    if is_dry_run:
+        # Bypass state machine for dry-run mode: go directly to submitted
+        jobs_dao.update_job_status(conn, job_id, "submitted")
+
+        # Import generate_dry_run_results
+        from app.anthropic.dry_run import generate_dry_run_results
+
+        # Generate fake responses for all clusters in chunks
+        for chunk_start in range(0, len(clusters), titles_per_request):
+            chunk = clusters[chunk_start:chunk_start + titles_per_request]
+            cluster_ids = [c.id for c in chunk]
+            titles = [c.representative_original for c in chunk]
+
+            fake = generate_dry_run_results(cluster_ids, titles)
+
+            # Write answers to clusters
+            for i, cluster in enumerate(chunk):
+                clusters_dao.update_cluster_answers(
+                    conn,
+                    cluster.id,
+                    male_es=fake.results[i].male_es,
+                    female_es=fake.results[i].female_es,
+                    category=fake.results[i].category,
+                )
+
+        # Import spend_log DAO
+        from app.dao import spend_log as spend_log_dao
+
+        # Record $0 spend
+        spend_log_dao.insert_spend(
+            conn,
+            job_id=job_id,
+            batch_id=None,
+            usd=0.0,
+            at=int(time.time()),
+        )
+
+        # Bypass state machine: go directly to completed
+        jobs_dao.update_job_status(conn, job_id, "completed")
+        return
 
     # Step 5: Build TitleInput groups of size titles_per_request
     cluster_groups: list[list[Cluster]] = []
