@@ -2,8 +2,8 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 7
-**Current Task:** P01-09
+**Tasks Completed:** 8
+**Current Task:** P02-01
 
 ---
 
@@ -88,3 +88,10 @@
 - dev-frontend: runs `pnpm dev`
 - build: builds frontend and Docker image
 - Test: `make lint && make test` — **PASS** (ruff check passed, tsc passed, 2 backend tests passed, 4 frontend tests passed)
+
+### 2026-04-15 — P02-01: Migration runner
+- Created `backend/app/db.py` with `get_connection()` (WAL mode, foreign_keys ON) and `_apply_migrations()` scanning migrations/*.sql
+- Created `backend/tests/test_db.py` with 4 assertions: schema_version table created, idempotent, FK enabled, WAL mode
+- `get_connection()` uses `settings.database_path`, sets `row_factory`, applies migrations on first use
+- `_apply_migrations()` creates schema_version table, tracks applied versions, applies pending migrations from sorted SQL files
+- Test: `cd backend && uv run pytest tests/test_db.py -v` — **PASS** (4 tests)
