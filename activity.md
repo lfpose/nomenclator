@@ -9,6 +9,22 @@
 
 ## Session Log
 
+### 2026-04-15 — P10-15: General rate-limit dependency
+- Extended `backend/app/auth/middleware.py` with general rate limit in `require_session` dependency
+- Added imports for `APIError` from `..api.errors` and `GENERAL_LIMITER` from `rate_limit`
+- Modified `require_session` function to:
+  - Call `GENERAL_LIMITER.allow(raw)` after validating session
+  - Raise `APIError("rate_limited", "Too many requests.", 429)` when rate limit is exceeded
+  - Added docstring documenting both session validation and rate limiting
+- Created `backend/tests/api/test_general_rate_limit.py` with 2 assertions:
+  - `test_general_rate_limit_blocks_after_60`: verifies that 60 requests succeed and 61st returns 429 with rate_limited error code
+  - `test_general_rate_limit_separate_per_session`: verifies that two independent sessions have independent rate limits (exhausting one doesn't block the other)
+- Fixed test issue: used `test_client.cookies.clear()` to create second independent session without destroying first session
+- Test: `cd backend && uv run pytest tests/api/test_general_rate_limit.py -v` — **PASS** (2 tests)
+- Also verified: `cd backend && uv run ruff check app/auth/middleware.py tests/api/test_general_rate_limit.py` — **PASS**
+
+---
+
 ### 2026-04-15 — P10-13: Router wiring + test fixture for authenticated client
 - Verified that all routers are already wired in `backend/app/main.py`:
   - auth_router (tags=["auth"])
