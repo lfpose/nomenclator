@@ -9,6 +9,29 @@
 
 ## Session Log
 
+### 2026-04-15 — P12-01: Test 1: Row count equals input across sizes
+- Created `backend/tests/reliability/` directory and `backend/tests/reliability/conftest.py` with E2E test infrastructure
+- Implemented `run_e2e()` helper fixture in conftest.py that:
+  - Creates a preview job with n_rows synthetic job titles (`f"Job Title {i}"` format)
+  - Commits the job using `commit_job()` with FakeAnthropicBatchClient
+  - Completes the fake batch with synthetic answers using `generate_dry_run_results()`
+  - Updates batch status to "ended", marks requests as completed
+  - Writes fake cluster answers (male_es, female_es, category)
+  - Records $0 spend in spend_log
+  - Transitions job through proper state machine: submitted -> polling -> completed
+  - Returns job_id for export verification
+- Created `backend/tests/reliability/test_01_row_count.py` with parametrized test:
+  - `@pytest.mark.parametrize("n_rows", [1, 100, 1000, 10000])`
+  - Verifies that for each size, output CSV has exactly n data rows (excluding header)
+  - Uses `export_job_to_csv()` to get CSV bytes and decodes as UTF-8-sig
+  - Splits by newlines and skips header row to count data rows
+- Fixed state transition issues: initially tried `submitted -> completed` but state machine requires `submitted -> polling -> completed`
+- Fixed ruff issues: removed unused imports (tempfile, export_job_to_csv, parse_tool_call) and unused variable `rows`
+- Test: `cd backend && uv run pytest tests/reliability/test_01_row_count.py -v` — **PASS** (4 parametric tests: 1, 100, 1000, 10000 rows, completed in 40.40s)
+- Also verified: `cd backend && uv run ruff check tests/reliability/` — **PASS**
+
+---
+
 ### 2026-04-15 — P10-17: Dry-run and row-subset params in commit and preview
 - Extended `backend/app/api/jobs.py` preview endpoint to accept `row_subset_mode` and `row_subset_n` parameters:
   - Added validation for `row_subset_mode` (must be 'all', 'first_n', or 'random_n')
