@@ -1103,3 +1103,25 @@
 - Test: `cd backend && uv run pytest tests/jobs/test_cap_integration.py -v` — **PASS** (2 tests)
 - Also verified: `cd backend && uv run ruff check tests/jobs/test_cap_integration.py` — **PASS**
 
+
+### 2026-04-15 — P10-06: POST /jobs/:id/commit
+- Extended `backend/app/main.py` to store anthropic_client in app.state for access in API endpoints
+- Extended `backend/app/api/jobs.py` with POST /jobs/{job_id}/commit endpoint:
+  - Accepts JSON body with optional fields: prompt_override, taxonomy, titles_per_request, is_dry_run
+  - Uses COMMIT_LIMITER to rate limit commits (10 per hour per session)
+  - Validates session cookie and calls commit_job() from jobs service
+  - Handles SpendCapExceeded exception (409 with spend_cap_exceeded error code)
+  - Handles ConcurrencyError exception (409 with job_already_running error code)
+  - Handles ValueError for invalid_state (409) and not_found (404) job states
+  - Returns 202 status with job_id and "submitted" status on success
+- Created `backend/tests/api/test_api_commit.py` with 6 assertions:
+  - `test_commit_happy_path_returns_202`: verifies commit returns 202 and job transitions to submitted state
+  - `test_commit_spend_cap_returns_409`: verifies commit returns 409 when spend cap is exceeded
+  - `test_commit_concurrent_returns_409`: verifies commit returns 409 when another job is running
+  - `test_commit_non_preview_returns_409`: verifies commit returns 409 when job is not in preview state
+  - `test_commit_missing_job_returns_404`: verifies commit returns 404 when job does not exist
+  - `test_commit_rate_limited_after_10`: verifies commit returns 429 after 10 commits per hour (uses dry_run mode to bypass concurrency check)
+- Used helper functions `get_authenticated_client()` and `cleanup_authenticated_client()` for test setup with temporary database and password hash mocking
+- All 6 tests pass
+- Test: `cd backend && uv run pytest tests/api/test_api_commit.py -v` — **PASS** (6 tests)
+- Also verified: `cd backend && uv run ruff check app/api/jobs.py tests/api/test_api_commit.py app/main.py` — **PASS**

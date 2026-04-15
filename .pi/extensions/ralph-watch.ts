@@ -1,20 +1,20 @@
 /**
  * Ralph Watch Extension
  *
- * Integrates Ralph loop monitoring into Pi's TUI.
+ * Integrates Ralph loop monitoring into Pi's TUI as a sidebar panel.
  * Monitors .ralph-obs/ directory for loop state, health events, and iteration stats.
  *
  * Features:
  * - /ralph-watch command to toggle monitoring on/off
+ * - Sidebar panel on the right showing real-time stats
  * - Status indicator in footer showing loop health
- * - Widget showing detailed stats (current task, stuck count, success rate, etc.)
  * - Real-time updates from .ralph-obs/state.json, health.log, and iterations.jsonl
  */
 
 import type { ExtensionAPI, ExtensionContext } from "@mariozechner/pi-coding-agent";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { watch } from "node:fs/promises";
+import { Container, Text, Box } from "@mariozechner/pi-tui";
 
 // Types for Ralph data
 interface RalphState {
@@ -45,6 +45,7 @@ let updateInterval: NodeJS.Timeout | null = null;
 let currentRalphState: RalphState | null = null;
 let currentIterationStats: IterationStats | null = null;
 let currentHealthEvents: HealthEvent[] = [];
+let overlayHandle: { close: () => void; setHidden: (hidden: boolean) => void } | null = null;
 
 // Parse state.json
 async function parseRalphState(obsDir: string): Promise<RalphState | null> {
@@ -123,7 +124,6 @@ async function updateRalphData(ctx: ExtensionContext): Promise<void> {
 	currentHealthEvents = await parseHealthEvents(obsDir);
 
 	updateStatus(ctx);
-	updateWidget(ctx);
 }
 
 // Update footer status
@@ -159,82 +159,169 @@ function updateStatus(ctx: ExtensionContext): void {
 	ctx.ui.setStatus("ralph-watch", color(status));
 }
 
-// Update widget with detailed stats
-function updateWidget(ctx: ExtensionContext): void {
-	if (!watchEnabled) {
-		ctx.ui.setWidget("ralph-watch", undefined);
+// Sidebar component class
+class RalphSidebarComponent extends Container {
+	private theme: any;
+	private invalidateFn: () => void;
+	private ralphState: RalphState | null = null;
+	private iterationStats: IterationStats | null = null;
+	private healthEvents: HealthEvent[] = [];
+
+	constructor(theme: any, invalidateFn: () => void) {
+		super();
+		this.theme = theme;
+		this.invalidateFn = invalidateFn;
+	}
+
+	updateData(state: RalphState | null, stats: IterationStats | null, events: HealthEvent[]): void {
+		this.ralphState = state;
+		this.iterationStats = stats;
+		this.healthEvents = events;
+		this.invalidate();
+	}
+
+	override invalidate(): void {
+		super.invalidate();
+		this.rebuild();
+	}
+
+	private rebuild(): void {
+		this.clear();
+		const theme = this.theme;
+		const th = theme;
+
+		// Create content lines
+		const lines: string[] = [];
+
+		// Header
+		lines.push("");
+		lines.push(th.bold(th.fg("accent", " Ralph Status ")));
+		lines.push("");
+
+		if (this.ralphState) {
+			// Current state
+			lines.push(`${th.fg("dim", "Task:")}    ${this.ralphState.current_task || "none"}`);
+			lines.push(`${th.fg("dim", "Stuck:")}   ${this.ralphState.stuck_count}${th.fg("dim", "/5")}`);
+
+			const failedColor = this.ralphState.total_failed > 0 ? "error" : "success";
+			lines.push(`${th.fg("dim", "Failed:")}  ${th.fg(failedColor, String(this.ralphState.total_failed))}`);
+
+			// Last success
+			const lastSuccess = this.ralphState.last_successful;
+			if (lastSuccess && lastSuccess !== "never") {
+				const date = new Date(lastSuccess);
+				const timeAgo = this.getTimeAgo(date);
+				lines.push(`${th.fg("dim", "Last:")}    ${th.fg("muted", timeAgo)}`);
+			}
+
+			lines.push("");
+		}
+
+		if (this.iterationStats && this.iterationStats.total > 0) {
+			// Iteration stats
+			lines.push(`${th.fg("dim", "Total:")}   ${this.iterationStats.total}`);
+			lines.push(
+				`${th.fg("dim", "Success:")} ${th.fg("success", String(this.iterationStats.success))} (${this.iterationStats.successRate}%)`
+			);
+
+			if (this.iterationStats.failed > 0) {
+				lines.push(`${th.fg("dim", "Failed:")}  ${th.fg("error", String(this.iterationStats.failed))}`);
+			}
+
+			if (this.iterationStats.errors > 0) {
+				lines.push(`${th.fg("dim", "Errors:")}  ${th.fg("warning", String(this.iterationStats.errors))}`);
+			}
+
+			lines.push("");
+		}
+
+		if (this.healthEvents.length > 0) {
+			// Recent health events
+			lines.push(`${th.fg("dim", "Recent:")}`);
+			for (const event of this.healthEvents.slice(0, 5)) {
+				const icon =
+					event.level === "INFO"
+						? th.fg("success", "✓")
+						: event.level === "WARN"
+							? th.fg("warning", "⚠")
+							: th.fg("error", "✗");
+				// Truncate message to fit
+				const msg = event.message.length > 25 ? event.message.substring(0, 25) + "..." : event.message;
+				lines.push(`  ${icon} ${th.fg("muted", msg)}`);
+			}
+		}
+
+		// Add lines as Text components
+		for (const line of lines) {
+			this.addChild(new Text(line, 0, 0));
+		}
+	}
+
+	private getTimeAgo(date: Date): string {
+		const now = new Date();
+		const diffMs = now.getTime() - date.getTime();
+		const diffSec = Math.floor(diffMs / 1000);
+		const diffMin = Math.floor(diffSec / 60);
+		const diffHour = Math.floor(diffMin / 60);
+		const diffDay = Math.floor(diffHour / 24);
+
+		if (diffSec < 60) return `${diffSec}s ago`;
+		if (diffMin < 60) return `${diffMin}m ago`;
+		if (diffHour < 24) return `${diffHour}h ago`;
+		return `${diffDay}d ago`;
+	}
+}
+
+// Show sidebar overlay
+function showSidebar(ctx: ExtensionContext): void {
+	if (overlayHandle) {
+		// Already showing, just update data
 		return;
 	}
 
-	const theme = ctx.ui.theme;
-	const lines: string[] = [];
+	overlayHandle = ctx.ui.custom<boolean>(
+		(tui, theme, _kb, done) => {
+			const component = new Box(1, 1, (s) => theme.bg("selectedBg", s));
+			const sidebar = new RalphSidebarComponent(theme, () => tui.requestRender());
+			component.addChild(sidebar);
 
-	// Header
-	lines.push("");
-	lines.push(theme.bold(theme.fg("accent", " Ralph Loop Status ")));
-	lines.push("");
+			// Initial data
+			sidebar.updateData(currentRalphState, currentIterationStats, currentHealthEvents);
 
-	if (currentRalphState) {
-		// Current state
-		lines.push(`${theme.fg("dim", "Task:")}    ${currentRalphState.current_task || "none"}`);
-		lines.push(
-			`${theme.fg("dim", "Stuck:")}   ${currentRalphState.stuck_count}${theme.fg("dim", "/5")}`
-		);
+			// Store reference to update later
+			(currentRalphState as any).updateData = (state: RalphState | null, stats: IterationStats | null, events: HealthEvent[]) => {
+				sidebar.updateData(state, stats, events);
+			};
 
-		const failedColor =
-			currentRalphState.total_failed > 0 ? "error" : "success";
-		lines.push(
-			`${theme.fg("dim", "Failed:")}  ${theme.fg(failedColor, String(currentRalphState.total_failed))}`
-		);
+			return {
+				render: (width) => component.render(width),
+				invalidate: () => component.invalidate(),
+				handleInput: () => true, // Don't handle input
+			};
+		},
+		{
+			overlay: true,
+			overlayOptions: {
+				width: 35,
+				minWidth: 30,
+				maxWidth: 40,
+				anchor: "right",
+				margin: 0,
+				visible: (termWidth, _termHeight) => termWidth >= 100, // Only show on wide terminals
+			},
+			onHandle: (handle) => {
+				overlayHandle = handle;
+			},
+		},
+	);
+}
 
-		// Last success
-		const lastSuccess = currentRalphState.last_successful;
-		if (lastSuccess && lastSuccess !== "never") {
-			const date = new Date(lastSuccess);
-			const timeAgo = getTimeAgo(date);
-			lines.push(`${theme.fg("dim", "Last:")}    ${theme.fg("muted", timeAgo)}`);
-		}
-
-		lines.push("");
+// Hide sidebar overlay
+function hideSidebar(): void {
+	if (overlayHandle) {
+		overlayHandle.close();
+		overlayHandle = null;
 	}
-
-	if (currentIterationStats && currentIterationStats.total > 0) {
-		// Iteration stats
-		lines.push(`${theme.fg("dim", "Total:")}   ${currentIterationStats.total}`);
-		lines.push(
-			`${theme.fg("dim", "Success:")} ${theme.fg("success", String(currentIterationStats.success))} (${currentIterationStats.successRate}%)`
-		);
-
-		if (currentIterationStats.failed > 0) {
-			lines.push(
-				`${theme.fg("dim", "Failed:")}  ${theme.fg("error", String(currentIterationStats.failed))}`
-			);
-		}
-
-		if (currentIterationStats.errors > 0) {
-			lines.push(
-				`${theme.fg("dim", "Errors:")}  ${theme.fg("warning", String(currentIterationStats.errors))}`
-			);
-		}
-
-		lines.push("");
-	}
-
-	if (currentHealthEvents.length > 0) {
-		// Recent health events
-		lines.push(`${theme.fg("dim", "Recent:")}`);
-		for (const event of currentHealthEvents.slice(0, 3)) {
-			const icon =
-				event.level === "INFO"
-					? theme.fg("success", "✓")
-					: event.level === "WARN"
-						? theme.fg("warning", "⚠")
-						: theme.fg("error", "✗");
-			lines.push(`  ${icon} ${theme.fg("muted", event.message.substring(0, 40))}`);
-		}
-	}
-
-	ctx.ui.setWidget("ralph-watch", lines, { placement: "aboveEditor" });
 }
 
 // Get human-readable time ago
@@ -259,6 +346,7 @@ function toggleWatch(ctx: ExtensionContext): void {
 	if (watchEnabled) {
 		// Enable
 		updateRalphData(ctx);
+		showSidebar(ctx);
 		updateInterval = setInterval(() => updateRalphData(ctx), 2000);
 		ctx.ui.notify("Ralph watch enabled", "info");
 	} else {
@@ -270,8 +358,8 @@ function toggleWatch(ctx: ExtensionContext): void {
 		currentRalphState = null;
 		currentIterationStats = null;
 		currentHealthEvents = [];
+		hideSidebar();
 		ctx.ui.setStatus("ralph-watch", undefined);
-		ctx.ui.setWidget("ralph-watch", undefined);
 		ctx.ui.notify("Ralph watch disabled", "info");
 	}
 
@@ -280,19 +368,30 @@ function toggleWatch(ctx: ExtensionContext): void {
 
 // Persist state to session
 function persistState(ctx: ExtensionContext): void {
-	ctx.pi.appendEntry("ralph-watch", {
-		enabled: watchEnabled,
-	});
+	// Access pi from closure, not ctx
+	try {
+		// This is a bit tricky - pi is in the outer scope
+		// We'll use a different approach with session_manager
+		ctx.sessionManager.appendCustomEntry("ralph-watch", {
+			enabled: watchEnabled,
+		});
+	} catch {
+		// If this fails, it's not critical
+	}
 }
 
-// Restore state from session
+// Restore state from session (only from current branch)
 async function restoreState(ctx: ExtensionContext): Promise<void> {
-	for (const entry of ctx.sessionManager.getEntries()) {
+	// Get entries in current branch only
+	const branchEntries = ctx.sessionManager.getBranch();
+
+	for (const entry of branchEntries) {
 		if (entry.type === "custom" && entry.customType === "ralph-watch") {
 			const state = entry.data as { enabled?: boolean };
 			if (state.enabled) {
 				watchEnabled = true;
 				updateRalphData(ctx);
+				showSidebar(ctx);
 				updateInterval = setInterval(() => updateRalphData(ctx), 2000);
 				ctx.ui.notify("Ralph watch restored", "info");
 			}
@@ -310,7 +409,7 @@ export default function ralphWatchExtension(pi: ExtensionAPI): void {
 
 	// Register command
 	pi.registerCommand("ralph-watch", {
-		description: "Toggle Ralph loop monitoring (shows .ralph-obs data in TUI)",
+		description: "Toggle Ralph loop monitoring (sidebar panel on right)",
 		handler: async (_args, ctx) => {
 			toggleWatch(ctx);
 		},
@@ -318,7 +417,7 @@ export default function ralphWatchExtension(pi: ExtensionAPI): void {
 
 	// Register keyboard shortcut
 	pi.registerShortcut("ctrl+alt+r", {
-		description: "Toggle Ralph watch",
+		description: "Toggle Ralph watch sidebar",
 		handler: async (ctx) => {
 			toggleWatch(ctx);
 		},
@@ -337,6 +436,7 @@ export default function ralphWatchExtension(pi: ExtensionAPI): void {
 			clearInterval(updateInterval);
 			updateInterval = null;
 		}
+		hideSidebar();
 	});
 
 	// Handle flag on startup

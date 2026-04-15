@@ -17,6 +17,7 @@ async def lifespan(app: FastAPI):
     worker = Worker(client=client, db_factory=get_connection)
     await worker.start()
     app.state.worker = worker
+    app.state.anthropic_client = client
     try:
         yield
     finally:
