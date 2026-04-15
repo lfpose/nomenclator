@@ -2,9 +2,10 @@ from fastapi import APIRouter, Depends, Request, Response
 from pydantic import BaseModel
 
 from ..auth.config import get_password_hash
+from ..auth.middleware import require_session
 from ..auth.passwords import verify_password
 from ..auth.rate_limit import AUTH_LIMITER
-from ..auth.sessions import create_session
+from ..auth.sessions import create_session, destroy_session
 from ..db import db_dep
 from .errors import APIError
 
@@ -36,4 +37,18 @@ def auth_login(
         max_age=2592000,
         path="/",
     )
+    return {"ok": True}
+
+
+@router.get("/me", dependencies=[Depends(require_session)])
+def me():
+    return {"authenticated": True}
+
+
+@router.post("/auth/logout", dependencies=[Depends(require_session)])
+def logout(request: Request, response: Response, conn=Depends(db_dep)):
+    raw = request.cookies.get("sid")
+    if raw:
+        destroy_session(conn, raw)
+    response.delete_cookie("sid", path="/")
     return {"ok": True}

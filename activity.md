@@ -2,12 +2,26 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 70
-**Current Task:** P10-03
+**Tasks Completed:** 71
+**Current Task:** P10-04
 
 ---
 
 ## Session Log
+
+### 2026-04-15 — P10-03: GET /me and POST /auth/logout
+- Extended `backend/app/api/auth.py` with GET /me and POST /auth/logout endpoints:
+  - GET /me: requires valid session cookie via `require_session` dependency, returns `{"authenticated": true}` on success, 401 on unauthenticated
+  - POST /auth/logout: requires valid session cookie, destroys session via `destroy_session()`, deletes cookie with Max-Age=0, returns `{"ok": true}`
+- Added imports for `require_session` from auth.middleware and `destroy_session` from auth.sessions
+- Created `backend/tests/api/test_api_me.py` with 4 assertions:
+  - `test_me_401_without_cookie`: verifies /me returns 401 with unauthenticated error envelope when no session cookie is present
+  - `test_me_200_with_valid_cookie`: verifies /me returns 200 with `{"authenticated": true}` when valid session cookie is provided
+  - `test_logout_destroys_session`: verifies /auth/logout destroys the session and deletes the cookie (Max-Age=0 in Set-Cookie header)
+  - `test_me_401_after_logout`: verifies /me returns 401 after logout (session is destroyed and cookie no longer valid)
+- Tests use temporary database and monkeypatch password hash for isolated testing
+- Test: `cd backend && uv run pytest tests/api/test_api_me.py -v` — **PASS** (4 tests)
+- Also verified: `cd backend && uv run ruff check app/api/auth.py tests/api/test_api_me.py` — **PASS**
 
 ### 2026-04-15 — P10-02: POST /auth
 - Created `backend/app/api/auth.py` with POST /auth endpoint:
