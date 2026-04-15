@@ -418,6 +418,11 @@ def commit_job(
 
     # Dry-run mode: generate fake responses and complete immediately
     if is_dry_run:
+        # Update is_dry_run flag on job
+        conn.execute(
+            "UPDATE jobs SET is_dry_run = 1 WHERE id = ?",
+            (job_id,),
+        )
         # Bypass state machine for dry-run mode: go directly to submitted
         jobs_dao.update_job_status(conn, job_id, "submitted")
 
@@ -497,7 +502,13 @@ def commit_job(
             f"(used: ${cap_check.used_usd:.2f}, estimated: ${cap_check.estimated_usd:.2f})"
         )
 
-    # Step 9: Transition to queued state before submitting
+    # Step 9: Update is_dry_run flag on job (False for normal commits)
+    conn.execute(
+        "UPDATE jobs SET is_dry_run = 0 WHERE id = ?",
+        (job_id,),
+    )
+
+    # Step 10: Transition to queued state before submitting
     transition(conn, job_id, "queued", reason="commit_start")
 
     # Step 10: Submit batch to Anthropic

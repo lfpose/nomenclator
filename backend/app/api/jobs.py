@@ -80,12 +80,18 @@ async def preview(
     titles_per_request: int = Form(25),
     file: UploadFile | None = File(None),
     text: str | None = Form(None),
+    row_subset_mode: str = Form("all"),
+    row_subset_n: int | None = Form(None),
     conn=Depends(db_dep),
 ):
     if not (50 <= threshold <= 100):
         raise APIError("bad_threshold", "Threshold must be 50–100.", 400)
     if not (1 <= titles_per_request <= 50):
         raise APIError("bad_titles_per_request", "Titles per request must be 1–50.", 400)
+    if row_subset_mode not in ("all", "first_n", "random_n"):
+        raise APIError("bad_row_subset_mode", "Row subset mode must be one of: all, first_n, random_n.", 400)
+    if row_subset_mode != "all" and (row_subset_n is None or row_subset_n < 1):
+        raise APIError("bad_row_subset_n", "Row subset n must be >= 1 when mode is not 'all'.", 400)
     file_bytes = await file.read() if file else None
     # Keep text as None (not empty string) so ingest validation works correctly
     text_value = text
@@ -96,6 +102,8 @@ async def preview(
             text=text_value,
             threshold=threshold,
             titles_per_request=titles_per_request,
+            row_subset_mode=row_subset_mode,
+            row_subset_n=row_subset_n,
         )
     except CSVError as e:
         raise APIError(e.code, e.message, 400)
@@ -188,6 +196,9 @@ def serialize_job(j) -> dict:
             if j.finished_at
             else None
         ),
+        "row_subset_mode": j.row_subset_mode,
+        "row_subset_n": j.row_subset_n,
+        "is_dry_run": j.is_dry_run,
     }
 
 

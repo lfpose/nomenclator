@@ -9,6 +9,32 @@
 
 ## Session Log
 
+### 2026-04-15 — P10-17: Dry-run and row-subset params in commit and preview
+- Extended `backend/app/api/jobs.py` preview endpoint to accept `row_subset_mode` and `row_subset_n` parameters:
+  - Added validation for `row_subset_mode` (must be 'all', 'first_n', or 'random_n')
+  - Added validation for `row_subset_n` (must be >= 1 when mode is not 'all')
+  - Passes parameters to `create_preview_job()` call
+- Updated `serialize_job()` function to include `row_subset_mode`, `row_subset_n`, and `is_dry_run` fields in job responses
+- Modified `commit_job()` in `backend/app/jobs/service.py` to update `is_dry_run` flag on jobs:
+  - Sets `is_dry_run=1` for dry-run commits before processing
+  - Sets `is_dry_run=0` for normal commits before transitioning to queued
+- Created `backend/tests/api/test_api_dry_run.py` with 4 assertions:
+  - `test_commit_dry_run_returns_202`: verifies dry-run commit returns 202 and job transitions to completed
+  - `test_dry_run_job_shows_is_dry_run_in_detail`: verifies job detail shows `is_dry_run=True`
+  - `test_dry_run_job_shows_zero_cost`: verifies dry-run jobs have zero actual_cost_usd
+  - `test_dry_run_completes_without_worker`: verifies dry-run jobs complete immediately without worker polling or batches
+- Created `backend/tests/api/test_api_row_subset.py` with 4 assertions:
+  - `test_preview_first_n_returns_subset_count`: verifies first_n mode processes only N rows
+  - `test_preview_random_n_returns_subset_count`: verifies random_n mode processes exactly N rows
+  - `test_preview_bad_row_subset_mode_400`: verifies invalid mode returns 400 with bad_row_subset_mode error
+  - `test_preview_missing_n_when_not_all_400`: verifies missing n returns 400 with bad_row_subset_n error
+- Fixed Unicode encoding issues in test CSV data (encoded UTF-8 strings to bytes)
+- Added `FakeAnthropicBatchClient` setup in dry_run tests for commit endpoint
+- Test: `cd backend && uv run pytest tests/api/test_api_dry_run.py tests/api/test_api_row_subset.py -v` — **PASS** (8 tests)
+- Also verified: `cd backend && uv run ruff check app/api/jobs.py app/jobs/service.py tests/api/test_api_dry_run.py tests/api/test_api_row_subset.py` — **PASS**
+
+---
+
 ### 2026-04-15 — P10-16: POST /jobs/review-prompt
 - Added `REVIEW_LIMITER = RateLimiter(limit=10, window_seconds=60.0)` to `backend/app/auth/rate_limit.py`
 - Extended `backend/app/api/jobs.py` with `POST /jobs/review-prompt` endpoint:

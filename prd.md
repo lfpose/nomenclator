@@ -1220,7 +1220,7 @@ Key features: prompt review (optional AI validation), row subset (test with firs
       "Verify: cd backend && uv run pytest tests/api/test_api_dry_run.py tests/api/test_api_row_subset.py -v"
     ],
     "test": "cd backend && uv run pytest tests/api/test_api_dry_run.py tests/api/test_api_row_subset.py -v",
-    "passes": false
+    "passes": true
   },
   {
     "id": "P11-01",
