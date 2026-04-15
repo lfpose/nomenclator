@@ -2,12 +2,36 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 109
-**Current Task:** P14-07 (completed)
+**Tasks Completed:** 110
+**Current Task:** P14-08 (completed)
 
 ---
 
 ## Session Log
+
+### 2026-04-15 — P14-08: Submit button → commit
+- Created `frontend/src/components/SubmitButton.tsx` with commit button functionality:
+  - Accepts jobId, promptOverride, taxonomy, titlesPerRequest, isDryRun, disabled, onSubmit, and onError props
+  - Shows loading state with Spinner while submitting
+  - Calls jobsApi.commit with all parameters including is_dry_run from form state
+  - Handles 202 response by calling onSubmit with jobId to transition to running state
+  - Handles spend_cap_exceeded error with reset_date, job_already_running error, and other API errors
+  - Uses error object structure with code, message, and details fields (not instanceof check for better test compatibility)
+  - Shows disabled state when already submitting or when disabled prop is true
+- Updated `frontend/src/lib/api.ts` to add `details` field to APIError class for storing error envelope data
+  - APIError now accepts optional `details` parameter in constructor
+  - parseErrorResponse function passes the full detail object to APIError constructor
+- Created `frontend/tests/submit-commit.test.tsx` with 5 assertions:
+  - `calls commit with prompt and taxonomy`: verifies all commit parameters are sent correctly
+  - `transitions to running state on 202`: verifies onSubmit callback is called with jobId on success
+  - `shows spend_cap_exceeded error with reset date`: verifies error handling for spend cap with reset date
+  - `shows job_already_running error`: verifies error handling for concurrent job scenario
+  - `sends is_dry_run when toggle is on`: verifies is_dry_run parameter is included when toggle is on
+- Fixed mocking issues by using object-based error structure instead of instanceof checks for better test compatibility
+- Mocked api.post function instead of jobsApi.commit for simpler mocking
+- Test: `cd frontend && pnpm test --run tests/submit-commit.test.tsx` — **PASS** (5 tests)
+- Also verified: `cd frontend && pnpm tsc --noEmit` — **PASS**
+- Also verified: `cd frontend && pnpm build` — **PASS**
 
 ### 2026-04-15 — P14-07: Top clusters table
 - Created `frontend/src/components/TopClustersTable.tsx` with expandable table showing top clusters:

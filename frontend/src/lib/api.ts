@@ -17,12 +17,14 @@ export interface APIErrorResponse {
 export class APIError extends Error {
   code: string;
   status: number;
+  details?: unknown;
 
-  constructor(code: string, message: string, status: number) {
+  constructor(code: string, message: string, status: number, details?: unknown) {
     super(message);
     this.name = "APIError";
     this.code = code;
     this.status = status;
+    this.details = details;
   }
 }
 
@@ -45,7 +47,12 @@ async function parseErrorResponse(response: Response): Promise<APIError> {
 
   // Handle our structured error format
   if (data.detail?.error?.code && data.detail?.error?.message) {
-    throw new APIError(data.detail.error.code, data.detail.error.message, response.status);
+    throw new APIError(
+      data.detail.error.code,
+      data.detail.error.message,
+      response.status,
+      data.detail
+    );
   }
 
   // Handle unknown format
