@@ -197,3 +197,13 @@
 - Created `backend/tests/csv/__init__.py` for the tests/csv package
 - Created `backend/tests/csv/test_normalize.py` with 8 assertions: strips accents, lowercases, collapses whitespace, drops punctuation, preserves inner hyphen, empty string, only punctuation, idempotency
 - Test: `cd backend && uv run pytest tests/csv/test_normalize.py -v` — **PASS** (8 tests)
+
+### 2026-04-15 — P03-02: CSV parser
+- Created `backend/app/csv_io/parser.py` with CSVError exception class and parse_csv(raw: bytes) function
+- parse_csv decodes bytes as UTF-8-sig (strips BOM), auto-detects delimiter (comma or semicolon) by counting occurrences in first 2KB, defaults to comma for single-column files
+- Raises CSVError for: encoding_invalid, input_empty, input_too_large (>50,000 rows), delimiter_unknown (pipe/tab detected)
+- Uses pandas.read_csv with strict parameters: dtype=str, keep_default_na=False, na_values=[], skip_blank_lines=True
+- Returns list of first column values (df.iloc[:, 0].tolist())
+- Created fixture CSV files in `backend/tests/fixtures/csv/`: basic_comma.csv, basic_semicolon.csv, with_bom.csv (UTF-8 BOM), multi_column.csv, empty_data.csv (header only), non_utf8.csv (Latin-1 encoded)
+- Created `backend/tests/csv/test_parser.py` with 8 assertions covering all error cases and successful parsing scenarios
+- Test: `cd backend && uv run pytest tests/csv/test_parser.py -v` — **PASS** (8 tests)
