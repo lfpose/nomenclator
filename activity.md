@@ -2,12 +2,38 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 96
-**Current Task:** P13-03 (completed)
+**Tasks Completed:** 97
+**Current Task:** P13-04 (completed)
 
 ---
 
 ## Session Log
+
+### 2026-04-15 — P13-04: Auth gate component
+- Created `frontend/src/components/PasswordForm.tsx` with password input and submit button:
+  - Uses shadcn Input and Button components
+  - Accepts `onSuccess` callback prop for authentication success
+  - Shows error with `role="alert"` on authentication failure
+  - Handles loading state during API call
+  - Calls `api.post("/auth", { password })` for authentication
+- Created `frontend/src/components/AuthGate.tsx` that:
+  - Checks authentication status via `GET /me` on mount
+  - Renders PasswordForm when unauthenticated (401 response)
+  - Renders children when authenticated (200 response)
+  - Shows loading state while checking authentication
+  - Uses `useEffect` to check auth status and `useState` to track auth state
+- Created `frontend/tests/auth-gate.test.tsx` with 4 assertions:
+  - `test("renders password form when /me returns 401")`: verifies PasswordForm is shown when unauthenticated
+  - `test("renders children when /me returns 200")`: verifies children are rendered when authenticated
+  - `test("password form error shows on 401")`: verifies error message appears with `role="alert"` on auth failure
+  - `test("password form success transitions to children")`: verifies `onSuccess` callback is called on successful auth
+- Fixed form submission testing issue: `userEvent.click()` on shadcn Button wasn't triggering form submit, so used direct `form?.dispatchEvent(new Event("submit", ...))` instead
+- All tests use vi.fn() to mock api.get and api.post with realistic response shapes
+- Test: `cd frontend && pnpm test --run tests/auth-gate.test.tsx` — **PASS** (4 tests)
+- Also verified: `cd frontend && pnpm build` — **PASS**
+- Also verified: `cd frontend && pnpm tsc --noEmit` — **PASS**
+
+---
 
 ### 2026-04-15 — P13-02: Theme provider and toggle
 - Created `frontend/src/lib/theme.ts` with Theme type and two functions:
