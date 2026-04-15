@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
+from .api.errors import register_handlers
 from .anthropic.client import RealAnthropicClient
 from .db import get_connection
 from .settings import settings
@@ -26,6 +27,8 @@ def create_app() -> FastAPI:
         version=settings.version,
         lifespan=lifespan,
     )
+
+    register_handlers(app)
 
     @app.get("/health")
     def health():

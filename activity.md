@@ -2,12 +2,31 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 68
-**Current Task:** P10-01
+**Tasks Completed:** 69
+**Current Task:** P10-02
 
 ---
 
 ## Session Log
+
+### 2026-04-15 — P10-01: App factory + error envelope + global exception handlers
+- Created `backend/app/api/errors.py` with error handling infrastructure:
+  - `APIError` exception class with code, message, status, and details attributes
+  - `error_response()` function that returns JSONResponse with standardized error envelope
+  - `register_handlers()` function that registers exception handlers for APIError, HTTPException, RequestValidationError, and generic Exception
+- Created `backend/app/api/__init__.py` for the api package
+- Created `backend/tests/api/__init__.py` for the tests/api package
+- Created `backend/tests/api/test_error_envelope.py` with 5 assertions:
+  - `test_api_error_produces_envelope`: verifies APIError produces correct error envelope
+  - `test_http_exception_produces_envelope`: verifies HTTPException produces correct error envelope
+  - `test_http_exception_with_existing_envelope`: verifies HTTPException with existing error envelope is passed through
+  - `test_validation_error_produces_bad_request`: verifies RequestValidationError produces bad_request envelope
+  - `test_unknown_exception_produces_internal_error`: verifies unknown exceptions produce internal_error envelope
+- Modified `backend/app/main.py` to import and call `register_handlers(app)` in `create_app()`
+- Fixed TestClient configuration in `test_unknown_exception_produces_internal_error` to use `raise_server_exceptions=False` to properly test exception handling
+- Fixed all ruff issues (removed unused imports: Request, pytest, error_response, RequestValidationError)
+- Test: `cd backend && uv run pytest tests/api/test_error_envelope.py -v` — **PASS** (5 tests)
+- Also verified: `cd backend && uv run ruff check app/api/errors.py app/main.py tests/api/test_error_envelope.py` — **PASS**
 
 ### 2026-04-15 — P09-05: Auth configuration and loader
 - Created `backend/app/auth/config.py` with `get_password_hash()` function
