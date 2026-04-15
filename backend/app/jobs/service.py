@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import uuid
 from dataclasses import dataclass
@@ -16,9 +18,8 @@ from app.jobs.estimator import check_cap, estimate_job_cost
 from app.jobs.state_machine import assert_allowed
 
 if TYPE_CHECKING:
+    from app.anthropic.review import PromptReview
     from app.dao.clusters import Cluster
-
-if TYPE_CHECKING:
     from sqlite3 import Connection
 
 log = logging.getLogger("nomenclator.jobs")
@@ -32,6 +33,14 @@ class ConcurrencyError(Exception):
 class SpendCapExceeded(Exception):
     """Raised when estimated cost would exceed monthly spend cap."""
     pass
+
+
+class APIError(Exception):
+    """Raised when an external API call fails."""
+    def __init__(self, code: str, message: str):
+        self.code = code
+        self.message = message
+        super().__init__(message)
 
 
 def transition(conn, job_id: str, new_status: str, reason: str) -> None:
@@ -545,3 +554,31 @@ def record_batch_cost(
         input_tokens=input_tokens,
         output_tokens=output_tokens,
     )
+
+
+def review_operator_prompt(api_key: str, prompt: str, few_shots: str) -> PromptReview:
+    """Review an operator's prompt using Haiku.
+
+    Thin wrapper that calls the prompt review client and handles errors gracefully.
+
+    Args:
+        api_key: Anthropic API key
+        prompt: The system prompt to review
+        few_shots: JSON-serialized few-shot examples
+
+    Returns:
+        PromptReview object with review results
+
+    Raises:
+        APIError: If the Anthropic API call fails
+    """
+    from app.anthropic.review import review_prompt
+
+    try:
+        return review_prompt(api_key, prompt, few_shots)
+    except Exception as e:
+        # Catch any API errors and convert to APIError
+        raise APIError(
+            code="prompt_review_failed",
+            message=f"Failed to review prompt: {e}",
+        ) from e

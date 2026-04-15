@@ -2,12 +2,28 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 53
-**Current Task:** P07-09
+**Tasks Completed:** 54
+**Current Task:** P07-10
 
 ---
 
 ## Session Log
+
+### 2026-04-15 — P07-10: Prompt review service
+- Added `APIError` class to `backend/app/jobs/service.py` with code and message attributes for structured error reporting
+- Added `from __future__ import annotations` to enable postponed evaluation of annotations (needed for PromptReview type hint)
+- Added `PromptReview` to TYPE_CHECKING imports for type hint only
+- Implemented `review_operator_prompt(api_key, prompt, few_shots) -> PromptReview` function in `backend/app/jobs/service.py`
+- This is a thin wrapper that calls `review_prompt` from `anthropic.review` module
+- Catches any exceptions and converts them to `APIError(code="prompt_review_failed", message=...)` with original error chained
+- Created `backend/tests/jobs/test_prompt_review.py` with 2 assertions:
+  - `test_review_returns_prompt_review_object`: verifies function returns PromptReview object and calls review_prompt with correct arguments
+  - `test_review_propagates_api_errors_as_api_error`: verifies API errors are converted to APIError with correct code, message, and original error chained
+- Fixed test to patch `app.anthropic.review.review_prompt` instead of `app.jobs.service.review_prompt` since the import happens inside the function body
+- Removed unused `fake_anthropic` fixture parameter from first test
+- Test: `cd backend && uv run pytest tests/jobs/test_prompt_review.py -v` — **PASS** (2 tests)
+- Also verified: `cd backend && uv run ruff check app/jobs/service.py tests/jobs/test_prompt_review.py` — **PASS**
+- All 65 job tests still pass
 
 ### 2026-04-15 — P07-09: Create preview with row subset
 - Refactored `backend/app/jobs/service.py` to fix `create_preview_job` and `recluster_job` functions for handling row subset functionality
