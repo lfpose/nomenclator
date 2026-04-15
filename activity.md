@@ -2,12 +2,24 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 89
-**Current Task:** P12-04 (completed)
+**Tasks Completed:** 90
+**Current Task:** P12-05 (completed)
 
 ---
 
 ## Session Log
+
+### 2026-04-15 — P12-05: Test 5: Stragglers recovered via retry
+- Created `backend/tests/reliability/test_05_stragglers_recovered.py` with 3 assertions:
+  - `test_stragglers_recovered_final_csv_all_populated`: verifies mock Anthropic returns N-1 results on first batch, all results on retry, final CSV is fully populated
+  - `test_stragglers_recovery_produces_two_batches`: verifies straggler recovery produces exactly 2 batch records (original + retry)
+  - `test_stragglers_recovery_error_rows_is_zero`: verifies straggler recovery results in completed job with error_rows == 0
+- Tests use 20 unique job titles, simulate straggler by omitting the last cluster from first batch results
+- First batch is completed with N-1 results, retry batch is submitted with only the straggler cluster
+- Tests verify: final job status is 'completed', all rows in CSV are populated, error column is empty for every row, exactly 2 batches
+- Fixed multiple issues during implementation: duplicate argument in function signature, missing `time` import, incorrect `insert_batch` parameters, `insert_request` requiring keyword arguments, `few_shots` stored as JSON needing parse, `build_user_message` requiring `TitleInput` objects not strings, `update_cluster_answers` import inside loop causing scope issue
+- Test: `cd backend && uv run pytest tests/reliability/test_05_stragglers_recovered.py -v` — **PASS** (3 tests)
+- Also verified: `cd backend && uv run ruff check tests/reliability/test_05_stragglers_recovered.py` — **PASS**
 
 ### 2026-04-15 — P12-04: Test 4: Duplicates get identical answers
 - Created `backend/tests/reliability/test_04_duplicates_consistent.py` with 3 assertions:
