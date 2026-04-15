@@ -2,8 +2,8 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 30
-**Current Task:** P05-02
+**Tasks Completed:** 31
+**Current Task:** P05-03
 
 ---
 
@@ -353,4 +353,21 @@
 - `estimate_cost()` calculates cost based on cluster_count and titles_per_request, accounting for system prompt, preamble, per-title tokens, and overhead
 - Created `backend/tests/test_pricing.py` with 4 assertions: zero clusters returns zero, 2500 clusters/25 TPR within range ($0.25-$0.50), monotonic with cluster count, decreases with higher TPR
 - Test: `cd backend && uv run pytest tests/test_pricing.py -v` — **PASS** (4 tests)
+- Also verified: ruff check passes
+
+### 2026-04-15 — P05-02: Tool schema builder
+- Created `backend/app/anthropic/__init__.py` for the anthropic package
+- Created `backend/app/anthropic/tool_schema.py` with `build_tool_schema(titles_per_request)` function
+- Function returns Anthropic tool definition dict with `minItems == maxItems == titles_per_request` for the results array
+- Schema enforces exactly one result per input id with matching ids
+- Each item requires 4 fields: id (pattern ^t[0-9]+$), male_es, female_es, category (all strings with minLength 1)
+- Created `backend/tests/anthropic/__init__.py` for the tests/anthropic package
+- Created `backend/tests/anthropic/test_tool_schema.py` with 5 assertions:
+  - test_schema_has_correct_name
+  - test_schema_minitems_equals_titles_per_request
+  - test_schema_maxitems_equals_titles_per_request
+  - test_schema_requires_four_fields_per_item
+  - test_schema_id_pattern_matches_t_prefix_numeric
+- Fixed unused pytest import flagged by ruff
+- Test: `cd backend && uv run pytest tests/anthropic/test_tool_schema.py -v` — **PASS** (5 tests)
 - Also verified: ruff check passes
