@@ -2,12 +2,47 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 101
-**Current Task:** P12-10 (completed)
+**Tasks Completed:** 102
+**Current Task:** P14-01 (completed)
 
 ---
 
 ## Session Log
+
+### 2026-04-15 — P14-01: API client functions for jobs
+- Created `frontend/src/lib/jobs-api.ts` with typed wrappers around all `/jobs*` and `/spend` endpoints:
+  - `reviewPrompt(prompt, fewShots)`: POST /jobs/review-prompt with prompt and few_shots parameters
+  - `preview(form)`: POST /jobs/preview with FormData (file, text, threshold, titles_per_request, optional row_subset_mode, row_subset_n)
+  - `recluster(jobId, threshold)`: POST /jobs/:id/recluster
+  - `commit(jobId, body)`: POST /jobs/:id/commit with optional prompt_override, taxonomy, titles_per_request, is_dry_run
+  - `cancel(jobId)`: POST /jobs/:id/cancel
+  - `list()`: GET /jobs
+  - `get(jobId)`: GET /jobs/:id
+  - `downloadUrl(jobId)`: returns /jobs/:id/download URL string
+  - `spend()`: GET /spend
+- Added comprehensive TypeScript types:
+  - ReviewResponse: safe, quality_score, issues, suggestions, summary
+  - ClusterMember: cluster_id, row_index, original, normalized
+  - TopCluster: cluster_id, representative_original, normalized_key, member_count, members array
+  - PreviewResponse: job_id, total_rows, exact_unique_rows, cluster_count, largest_cluster_size, est_cost_usd, top_clusters, warnings, optional total_input_rows, selected_rows
+  - JobSummary: id, status, created_at, total_rows, cluster_count, est_cost_usd, actual_cost_usd, finished_at, fuzzy_threshold, titles_per_request, row_subset_mode, row_subset_n, is_dry_run
+  - BatchSummary: id, status, request_count, retry_round
+  - JobProgress: clusters_total, clusters_resolved, clusters_pending, clusters_error
+  - JobDetail: extends JobSummary with retry_round, progress, batches
+  - SpendResponse: used_usd, cap_usd, reset_date
+- Created `frontend/tests/jobs-api.test.ts` with 6 assertions:
+  - `preview posts multipart`: verifies preview sends FormData with file, threshold, titles_per_request
+  - `commit sends JSON body`: verifies commit sends JSON body with prompt_override, taxonomy, titles_per_request, is_dry_run
+  - `list returns typed array`: verifies list returns typed jobs array with JobSummary fields
+  - `get returns typed object`: verifies get returns JobDetail with progress and batches
+  - `downloadUrl returns /jobs/:id/download`: verifies downloadUrl returns correct URL format
+  - `reviewPrompt sends prompt and few_shots`: verifies reviewPrompt sends prompt and few_shots to review endpoint
+- Fixed import path in test file from `"../lib/api"` to `"../src/lib/api"` to match project structure
+- Test: `cd frontend && pnpm test --run tests/jobs-api.test.ts` — **PASS** (6 tests)
+- Also verified: `cd frontend && pnpm tsc --noEmit` — **PASS**
+- Also verified: `cd frontend && pnpm build` — **PASS**
+
+---
 
 ### 2026-04-15 — P12-10: Test 10: Partial run row count matches subset
 - Created `backend/tests/reliability/test_10_partial_run.py` with 3 assertions:
