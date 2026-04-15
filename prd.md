@@ -46,7 +46,7 @@ Key features: prompt review (optional AI validation), row subset (test with firs
       "Verify: cd backend && uv run pytest --collect-only exits 0"
     ],
     "test": "cd backend && uv run pytest --collect-only",
-    "passes": false
+    "passes": true
   },
   {
     "id": "P01-03",

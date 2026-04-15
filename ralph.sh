@@ -6,15 +6,16 @@
 # a fresh context window. Reads PROMPT.md and feeds it to the agent until
 # all tasks are complete or max iterations is reached.
 #
-# Usage: ./ralph.sh <max_iterations> [agent]
+# Usage: ./ralph.sh <max_iterations|watch> [agent]
 # Examples:
-#   ./ralph.sh 50              # uses Pi with OpenRouter (default)
-#   ./ralph.sh 50 pi           # explicit Pi
-#   ./ralph.sh 50 claude       # use Claude Code instead
+#   ./ralph.sh watch             # interactive — watch the agent work live
+#   ./ralph.sh 1                 # one task, non-interactive
+#   ./ralph.sh 200               # full autopilot
+#   ./ralph.sh 200 claude        # use Claude Code instead
 #
 # Environment:
-#   OPENROUTER_API_KEY  — required for Pi+OpenRouter (load via: source .env)
-#   RALPH_MODEL         — override model (default: anthropic/claude-sonnet-4)
+#   OPENROUTER_API_KEY  — required for Pi+OpenRouter (auto-loaded from .env)
+#   RALPH_MODEL         — override model (default: z-ai/glm-5.1)
 
 set -e
 
@@ -34,20 +35,22 @@ NC='\033[0m'
 if [ -z "$1" ]; then
   echo -e "${RED}Error: Missing required argument${NC}"
   echo ""
-  echo "Usage: $0 <max_iterations> [agent]"
+  echo "Usage: $0 <max_iterations|watch> [agent]"
   echo ""
-  echo "  agent: pi (default) or claude"
+  echo "  watch:  interactive session — watch the agent work live"
+  echo "  1..N:   run N iterations non-interactively"
+  echo "  agent:  pi (default) or claude"
   echo ""
   echo "Examples:"
-  echo "  source .env && ./ralph.sh 50"
-  echo "  source .env && RALPH_MODEL=anthropic/claude-sonnet-4 ./ralph.sh 50"
-  echo "  ./ralph.sh 50 claude"
+  echo "  ./ralph.sh watch            # watch live"
+  echo "  ./ralph.sh 1                # one task"
+  echo "  ./ralph.sh 200              # full autopilot"
+  echo "  RALPH_MODEL=z-ai/glm-4.5-air:free ./ralph.sh watch   # free model"
   exit 1
 fi
 
-MAX_ITERATIONS=$1
 AGENT="${2:-pi}"
-MODEL="${RALPH_MODEL:-thudm/glm-5.1}"
+MODEL="${RALPH_MODEL:-z-ai/glm-5.1}"
 
 # Verify required files
 for f in PROMPT.md prd.md; do
@@ -75,14 +78,40 @@ if [ ! -f "activity.md" ]; then
 EOF
 fi
 
-# Verify agent is available
+# ── Watch mode: interactive Pi TUI ──
+if [ "$1" = "watch" ]; then
+  if [ "$AGENT" = "pi" ]; then
+    if ! command -v pi &> /dev/null; then
+      echo -e "${RED}Error: pi not found. Install: npm install -g @mariozechner/pi-coding-agent${NC}"
+      exit 1
+    fi
+    if [ -z "$OPENROUTER_API_KEY" ]; then
+      echo -e "${RED}Error: OPENROUTER_API_KEY not set${NC}"
+      exit 1
+    fi
+    echo -e "${BLUE}======================================${NC}"
+    echo -e "${BLUE}   Nomenclator — Watch Mode${NC}"
+    echo -e "${BLUE}======================================${NC}"
+    echo -e "Agent: ${GREEN}Pi + OpenRouter${NC}"
+    echo -e "Model: ${GREEN}$MODEL${NC}"
+    echo ""
+    exec pi --provider openrouter --model "$MODEL" --thinking medium @prd.md @activity.md @PROMPT.md
+  elif [ "$AGENT" = "claude" ]; then
+    echo -e "${BLUE}Watch mode with Claude: just run 'claude' directly.${NC}"
+    exit 0
+  fi
+fi
+
+# ── Loop mode: non-interactive ──
+MAX_ITERATIONS=$1
+
 if [ "$AGENT" = "pi" ]; then
   if ! command -v pi &> /dev/null; then
     echo -e "${RED}Error: pi not found. Install: npm install -g @mariozechner/pi-coding-agent${NC}"
     exit 1
   fi
   if [ -z "$OPENROUTER_API_KEY" ]; then
-    echo -e "${RED}Error: OPENROUTER_API_KEY not set. Run: source .env${NC}"
+    echo -e "${RED}Error: OPENROUTER_API_KEY not set${NC}"
     exit 1
   fi
   AGENT_CMD="pi -p --provider openrouter --model $MODEL --no-session --thinking medium @prd.md @activity.md"
