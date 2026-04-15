@@ -987,7 +987,7 @@ Key features: prompt review (optional AI validation), row subset (test with firs
       "Verify: cd backend && uv run pytest tests/auth/test_rate_limit.py -v"
     ],
     "test": "cd backend && uv run pytest tests/auth/test_rate_limit.py -v",
-    "passes": false
+    "passes": true
   },
   {
     "id": "P09-05",

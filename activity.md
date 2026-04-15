@@ -2,12 +2,28 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 66
-**Current Task:** P09-03
+**Tasks Completed:** 67
+**Current Task:** P09-04
 
 ---
 
 ## Session Log
+
+### 2026-04-15 — P09-04: Rate limiter (in-memory token bucket)
+- Created `backend/app/auth/rate_limit.py` with `RateLimiter` class implementing sliding window token bucket using `deque`
+- `RateLimiter.__init__(limit, window_seconds)` accepts limit count and window duration
+- `RateLimiter.allow(key)` tracks hit timestamps per key, removes timestamps older than window, returns True if under limit, False otherwise
+- Created module-level instances: `AUTH_LIMITER` (5 req/min), `COMMIT_LIMITER` (10 req/hour), `GENERAL_LIMITER` (60 req/min)
+- Created `backend/tests/auth/test_rate_limit.py` with 4 assertions:
+  - `test_allows_under_limit`: verifies requests are allowed up to the limit
+  - `test_blocks_at_limit`: verifies requests are blocked once limit is reached
+  - `test_resets_after_window`: verifies window resets after time passes (uses side_effect for time patching)
+  - `test_independent_per_key`: verifies each key has independent rate limiting
+- Fixed test_resets_after_window to use `side_effect` instead of `return_value` for time patching to ensure all timestamps are from the patched time function
+- Fixed unused imports flagged by ruff (removed pytest, AUTH_LIMITER, COMMIT_LIMITER, GENERAL_LIMITER)
+- Test: `cd backend && uv run pytest tests/auth/test_rate_limit.py -v` — **PASS** (4 tests)
+- Also verified: All 19 auth tests pass (5 from P09-01 + 6 from P09-02 + 4 from P09-03 + 4 from P09-04)
+- Also verified: `cd backend && uv run ruff check app/auth/rate_limit.py tests/auth/test_rate_limit.py` — **PASS**
 
 ### 2026-04-15 — P09-03: Auth middleware / dependency
 - Created `backend/app/auth/middleware.py` with `require_session` FastAPI dependency function
