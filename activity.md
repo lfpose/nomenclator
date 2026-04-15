@@ -2,12 +2,21 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 36
-**Current Task:** P05-08
+**Tasks Completed:** 37
+**Current Task:** P05-09
 
 ---
 
 ## Session Log
+
+### 2026-04-15 — P05-09: Fake Anthropic client fixture
+- Created `backend/tests/anthropic/fake_client.py` with `FakeBatch` dataclass (id, requests, processing_status, result_rows) and `FakeAnthropicBatchClient` class
+- FakeAnthropicBatchClient implements submit_batch, get_batch_status, get_batch_results, cancel_batch methods, plus test helper complete_batch
+- Extended `backend/tests/conftest.py` with `fake_anthropic` pytest fixture returning a fresh FakeAnthropicBatchClient instance
+- Created `backend/tests/anthropic/test_fake_client.py` with 3 assertions: test_fake_submit_returns_batch_id, test_fake_complete_batch_sets_status_and_results, test_fake_cancel_sets_canceled_status
+- Fixed unused pytest import flagged by ruff
+- Test: `cd backend && uv run pytest tests/anthropic/test_fake_client.py -v` — **PASS** (3 tests)
+- Also verified: `cd backend && uv run ruff check tests/anthropic/fake_client.py tests/anthropic/test_fake_client.py tests/conftest.py` — **PASS**
 
 ### 2026-04-15 — P05-08: Anthropic client wrapper
 - Created `backend/app/anthropic/client.py` with `AnthropicBatchClient` Protocol (decorated with @runtime_checkable) and `RealAnthropicClient` implementation
