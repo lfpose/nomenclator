@@ -1,5 +1,9 @@
 import numpy as np
-from app.cluster.pipeline import build_components, pick_representative
+from app.cluster.pipeline import (
+    build_components,
+    pick_representative,
+    run_clustering,
+)
 
 
 def test_build_components_singleton_input():
@@ -107,3 +111,85 @@ def test_pick_representative_singleton():
     originals = ["Jefe de Compras"]
     result = pick_representative(originals)
     assert result == "Jefe de Compras"
+
+
+def test_run_clustering_empty_returns_empty():
+    """Empty input should return empty list."""
+    result = run_clustering([], threshold=90)
+    assert result == []
+
+
+def test_run_clustering_all_identical_returns_one_cluster():
+    """All identical rows should form a single cluster."""
+    rows = [
+        (0, "Jefe de Compras", "jefe de compras"),
+        (1, "Jefe de Compras", "jefe de compras"),
+        (2, "Jefe de Compras", "jefe de compras"),
+        (3, "Jefe de Compras", "jefe de compras"),
+        (4, "Jefe de Compras", "jefe de compras"),
+    ]
+    result = run_clustering(rows, threshold=90)
+    assert len(result) == 1
+    assert result[0].member_count == 5
+    assert result[0].representative_original == "Jefe de Compras"
+
+
+def test_run_clustering_jefe_compras_variants_merged():
+    """Jefe de compras variants should merge at threshold 90."""
+    rows = [
+        (0, "Jefe de Compras", "jefe de compras"),
+        (1, "Jefe de Compras", "jefe de compras"),
+        (2, "Jefe Compras", "jefe compras"),
+        (3, "Jefe Compras", "jefe compras"),
+        (4, "Jefe de compras", "jefe de compras"),
+    ]
+    result = run_clustering(rows, threshold=90)
+    assert len(result) == 1
+    assert result[0].member_count == 5
+
+
+def test_run_clustering_unrelated_titles_separate():
+    """Unrelated titles should form separate clusters."""
+    rows = [
+        (0, "Jefe de Compras", "jefe de compras"),
+        (1, "Director de Ventas", "director de ventas"),
+        (2, "Ingeniero de Software", "ingeniero de software"),
+    ]
+    result = run_clustering(rows, threshold=90)
+    assert len(result) == 3
+
+
+def test_run_clustering_assigns_all_rows_to_some_cluster():
+    """All rows should be assigned to some cluster."""
+    rows = [
+        (0, "Jefe de Compras", "jefe de compras"),
+        (1, "Jefe de Compras", "jefe de compras"),
+        (2, "Director de Ventas", "director de ventas"),
+        (3, "Director Ventas", "director ventas"),
+    ]
+    result = run_clustering(rows, threshold=90)
+    total_member_count = sum(cluster.member_count for cluster in result)
+    assert total_member_count == len(rows)
+
+
+def test_run_clustering_row_indices_complete_and_non_overlapping():
+    """Row indices should be complete and non-overlapping across clusters."""
+    rows = [
+        (0, "Jefe de Compras", "jefe de compras"),
+        (1, "Jefe de Compras", "jefe de compras"),
+        (2, "Director de Ventas", "director de ventas"),
+        (3, "Director Ventas", "director ventas"),
+        (4, "Ingeniero de Software", "ingeniero de software"),
+    ]
+    result = run_clustering(rows, threshold=90)
+    
+    # Collect all row indices from all clusters
+    all_indices: list[int] = []
+    for cluster in result:
+        all_indices.extend(cluster.member_row_indices)
+    
+    # Should have all indices from 0 to len(rows)-1
+    assert set(all_indices) == set(range(len(rows)))
+    
+    # No duplicates
+    assert len(all_indices) == len(set(all_indices))

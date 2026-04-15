@@ -2,8 +2,8 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 27
-**Current Task:** P04-06
+**Tasks Completed:** 28
+**Current Task:** P04-07
 
 ---
 
@@ -302,3 +302,24 @@
   - test_pick_representative_singleton: verifies single-item cluster returns that item
 - Fixed test_pick_representative_tiebreak_alphabetical to use same-length strings ("Director IT" and "Director RH" both 11 chars)
 - Test: `cd backend && uv run pytest tests/cluster/test_pipeline.py -v` — **PASS** (10 tests total, 5 for pick_representative)
+
+### 2026-04-15 — P04-06: Full cluster pipeline wrapper
+- Extended `backend/app/cluster/pipeline.py` with `ClusterResult` dataclass and `run_clustering()` function
+- ClusterResult contains: cluster_id (synthetic 0-based), representative_original, normalized_key, member_row_indices, member_count
+- run_clustering implements the full pipeline:
+  - Exact dedup: maps normalized values to row indices and originals
+  - Computes similarity matrix for unique normalized values using compute_similarity
+  - Builds connected components using build_components with threshold
+  - Picks representative for each cluster using pick_representative
+  - Returns list of ClusterResult objects sorted by cluster_id
+- Extended `backend/tests/cluster/test_pipeline.py` with 6 assertions:
+  - test_run_clustering_empty_returns_empty: verifies empty input returns empty list
+  - test_run_clustering_all_identical_returns_one_cluster: 5 identical rows → 1 cluster with member_count=5
+  - test_run_clustering_jefe_compras_variants_merged: 3 variants at threshold 90 → 1 cluster
+  - test_run_clustering_unrelated_titles_separate: 3 unrelated → 3 clusters
+  - test_run_clustering_assigns_all_rows_to_some_cluster: sum of member_counts == len(input)
+  - test_run_clustering_row_indices_complete_and_non_overlapping: all indices 0..n-1 present, no duplicates
+- Added imports for compute_similarity and normalize from csv_io module
+- Fixed unused ClusterResult import in test file
+- Test: `cd backend && uv run pytest tests/cluster/test_pipeline.py -k run_clustering -v` — **PASS** (6 tests)
+- Also verified: `cd backend && uv run pytest tests/cluster/ -v` — **PASS** (32 tests total)
