@@ -2,8 +2,8 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 33
-**Current Task:** P05-05
+**Tasks Completed:** 34
+**Current Task:** P05-06
 
 ---
 
@@ -417,5 +417,18 @@
 - Tests verify: valid output parsing, missing field raises, empty field raises, bad id pattern raises, extra field raises (forbid enforcement), empty results array allowed
 - Removed unused `TitleResult` import from test file after ruff check
 - Test: `cd backend && uv run pytest tests/anthropic/test_models.py -v` — **PASS** (6 tests)
+- Also verified: ruff check passes on both files
+
+### 2026-04-15 — P05-06: Response parser
+- Created `backend/app/anthropic/response_parser.py` with `ParseError` exception class and `parse_tool_call()` function
+- ParseError has code and message attributes for structured error reporting
+- `parse_tool_call()` extracts the tool_use block from message content, validates it has correct name, checks stop_reason for truncation, and validates schema via Pydantic
+- Raises ParseError with codes: 'tool_call_missing' (no tool_use block), 'truncated' (max_tokens reached), 'schema_violation' (Pydantic validation failed)
+- Created `backend/tests/anthropic/test_response_parser.py` with 4 assertions:
+  - test_parse_valid_tool_use_returns_tool_output: validates successful parsing with correct fields
+  - test_parse_missing_tool_use_raises_tool_call_missing: verifies error when no tool_use block present
+  - test_parse_max_tokens_stop_reason_raises_truncated: verifies truncation detection
+  - test_parse_invalid_schema_raises_schema_violation: verifies schema validation error propagation
+- Test: `cd backend && uv run pytest tests/anthropic/test_response_parser.py -v` — **PASS** (4 tests)
 - Also verified: ruff check passes on both files
 
