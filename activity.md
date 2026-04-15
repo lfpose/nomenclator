@@ -2,12 +2,24 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 87
-**Current Task:** P10-13 (completed)
+**Tasks Completed:** 88
+**Current Task:** P12-02 (completed)
 
 ---
 
 ## Session Log
+
+### 2026-04-15 — P12-02: Test 2: Row order preserved
+- Created `backend/tests/reliability/test_02_row_order.py` with 2 assertions:
+  - `test_row_order_preserved_exactly`: verifies that output CSV's original column preserves exact input order for 100 distinct titles
+  - `test_row_order_after_clustering_still_matches_input`: verifies that clustering doesn't change row order in output, tested with 50 unique titles that don't cluster together
+- Modified `backend/tests/reliability/conftest.py` run_e2e fixture to accept optional custom titles parameter (defaults to "Job Title {i}" format for backward compatibility)
+- Tests verify that after running the full E2E flow (preview → commit → fake batch → export), the CSV output maintains the same row order as input by comparing each position in the output with the expected title from the input list
+- Tests extract the original column (first column) from each CSV data row and compare position-wise with input titles
+- Removed unused pytest import flagged by ruff
+- Test: `cd backend && uv run pytest tests/reliability/test_02_row_order.py -v` — **PASS** (2 tests)
+- Also verified: P12-01 test still passes after fixture modification — **PASS** (4 tests)
+- Also verified: `cd backend && uv run ruff check tests/reliability/test_02_row_order.py tests/reliability/conftest.py` — **PASS**
 
 ### 2026-04-15 — P12-01: Test 1: Row count equals input across sizes
 - Created `backend/tests/reliability/` directory and `backend/tests/reliability/conftest.py` with E2E test infrastructure

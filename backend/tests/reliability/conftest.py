@@ -13,18 +13,19 @@ def run_e2e():
     and returns the job_id.
 
     Args:
+        n_rows: Number of rows to generate
         conn: Database connection (from fixture)
         fake: FakeAnthropicBatchClient (from fixture)
-        n_rows: Number of rows to generate
-        conn: Database connection
+        titles: Optional list of custom job titles (default: "Job Title {i}")
 
     Returns:
         job_id: The ID of the completed job
     """
 
-    def _run(n_rows, conn, fake):
+    def _run(n_rows, conn, fake, titles=None):
         # Generate synthetic Spanish job titles
-        titles = [f"Job Title {i}" for i in range(n_rows)]
+        if titles is None:
+            titles = [f"Job Title {i}" for i in range(n_rows)]
         csv_data = "\n".join(titles).encode("utf-8")
 
         # Create preview job
