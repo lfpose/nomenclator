@@ -110,7 +110,7 @@ Key features: prompt review (optional AI validation), row subset (test with firs
       "Verify: fly config validate exits 0"
     ],
     "test": "fly config validate",
-    "passes": false
+    "passes": true
   },
   {
     "id": "P01-08",

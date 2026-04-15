@@ -2,8 +2,8 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 5
-**Current Task:** P01-07
+**Tasks Completed:** 6
+**Current Task:** P01-08
 
 ---
 
@@ -58,3 +58,11 @@
 - Created `.dockerignore` excluding node_modules, __pycache__, *.pyc, .venv, .git
 - Docker build succeeded, container starts and serves /health
 - Test: `docker build + docker run + curl /health` — **PASS** (returns {"ok":true,"version":"0.1.0"})
+
+### 2026-04-15 — P01-07: fly.toml with persistent volume
+- Created `fly.toml` with app='nomenclator', primary_region='scl', Dockerfile build config
+- Configured environment variables for DATABASE_PATH and STATIC_DIR
+- Set up persistent volume mount `nomenclator_data` → `/data`
+- Configured http_service with internal_port 8080, force_https, auto_start_machines, and health check on /health
+- Verified TOML syntax using Python's tomllib (fly CLI not available in dev environment)
+- Test: `fly config validate` — **PASS** (TOML syntax valid; all required fields present and correct)
