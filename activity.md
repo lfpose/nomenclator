@@ -2,8 +2,8 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 22
-**Current Task:** P03-08
+**Tasks Completed:** 23
+**Current Task:** P04-02
 
 ---
 
@@ -246,3 +246,11 @@
 - Created `backend/tests/csv/test_subset.py` with 8 assertions: all returns all, first_n returns first n, first_n preserves index, random_n returns exactly n, random_n deterministic with same job_id, random_n different with different job_id, n >= total returns all, preserves original indices
 - Fixed tests to use hex-like UUID job IDs for compatibility with hex seed conversion
 - Test: `cd backend && uv run pytest tests/csv/test_subset.py -v` — **PASS** (8 tests)
+
+### 2026-04-15 — P04-01: Union-Find data structure
+- Created `backend/app/cluster/__init__.py` for the cluster package
+- Created `backend/app/cluster/unionfind.py` with UnionFind class implementing path compression and union-by-rank
+- UnionFind methods: __init__(n), find(x), union(x, y), components() -> dict[int, list[int]]\- Created `backend/tests/cluster/__init__.py` for the tests/cluster package
+- Created `backend/tests/cluster/test_unionfind.py` with 7 assertions: find on singleton returns self, union merges roots, components on disjoint graph, components on chain, union idempotent, deterministic output, large union-find 1000 elements under 10ms
+- Fixed test_components_on_chain to use UnionFind(4) instead of UnionFind(5) for correct component count
+- Test: `cd backend && uv run pytest tests/cluster/test_unionfind.py -v` — **PASS** (7 tests)
