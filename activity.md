@@ -9,6 +9,18 @@
 
 ## Session Log
 
+### 2026-04-15 — P12-03: Test 3: Every input row is in output
+- Created `backend/tests/reliability/test_03_input_output_set.py` with 2 assertions:
+  - `test_output_multiset_equals_input_multiset`: verifies that the output's original column has the same multiset (Counter) as the input, using a mix of duplicates and unique values
+  - `test_no_hallucinated_rows`: verifies that no extra rows appear in output that weren't in input (no hallucinated job titles)
+- Tests use the `run_e2e` fixture from conftest.py which runs a full E2E test scenario: preview → commit → fake batch → export
+- Tests extract the original column (first column) from the exported CSV and compare with input titles using Counter for multiset equality
+- Tests also verify subset relationships (output ⊆ input and input ⊆ output) to catch both hallucinations and missing rows
+- Removed unused `import pytest` flagged by ruff
+- Test: `cd backend && uv run pytest tests/reliability/test_03_input_output_set.py -v` — **PASS** (2 tests)
+- Also verified: All 8 reliability tests pass (P12-01, P12-02, P12-03)
+- Also verified: `cd backend && uv run ruff check tests/reliability/test_03_input_output_set.py` — **PASS**
+
 ### 2026-04-15 — P12-02: Test 2: Row order preserved
 - Created `backend/tests/reliability/test_02_row_order.py` with 2 assertions:
   - `test_row_order_preserved_exactly`: verifies that output CSV's original column preserves exact input order for 100 distinct titles
