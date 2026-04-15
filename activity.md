@@ -2,8 +2,8 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 113
-**Current Task:** P14-11 (completed)
+**Tasks Completed:** 114
+**Current Task:** P14-13 (completed)
 
 ---
 
@@ -23,6 +23,38 @@
   - `button has download attribute`: verifies anchor has download attribute
 - All tests use render and screen from @testing-library/react
 - Test: `cd frontend && pnpm test --run tests/download.test.tsx` — **PASS** (3 tests)
+- Also verified: `cd frontend && pnpm tsc --noEmit` — **PASS**
+- Also verified: `cd frontend && pnpm build` — **PASS**
+
+### 2026-04-15 — P14-13: History list
+- Created `frontend/src/components/HistoryList.tsx` with reverse-chronological job list:
+  - Accepts `jobs: JobSummary[]` prop
+  - Sorts jobs by created_at descending (newest first)
+  - Shows status badge per job with appropriate color variant
+  - Shows row count and cost (actual if completed, estimated otherwise)
+  - Shows "Dry run" badge for dry-run jobs (is_dry_run=true)
+  - Shows "Partial" badge for partial-run jobs (row_subset_mode !== "all")
+  - Download link only for completed jobs, with correct href and download attributes
+  - Expandable details on click using shadcn Collapsible component
+  - Details show: Created, Finished (if available), Clusters, Threshold, Titles per request, Subset info (if partial)
+  - Uses ChevronRight/ChevronDown icons for expand/collapse indicator
+  - Shows empty state message when no jobs exist
+- Created `frontend/tests/history.test.tsx` with 7 assertions:
+  - `renders jobs newest first`: verifies jobs sorted by created_at descending using different row counts to distinguish jobs
+  - `shows status badge per job`: verifies status badges display for completed, failed, and running jobs
+  - `shows row count and cost`: verifies row count and estimated cost display, and actual cost for completed jobs
+  - `expands row to show details on click`: verifies clicking job card expands to show details (Clusters, Threshold, etc.)
+  - `download link present for completed jobs only`: verifies download link shows for completed jobs with correct attributes, hidden for non-completed
+  - `shows dry run badge`: verifies "Dry run" badge displays for dry-run jobs, hidden for normal jobs
+  - `shows partial badge`: verifies "Partial" badge displays for partial-run jobs (row_subset_mode !== "all"), hidden for all-row jobs
+- Fixed issues during implementation:
+  - Initial tests failed because text was split across multiple nodes; switched to function-based text matchers for flexible matching
+  - "renders jobs newest first" test initially found all text nodes including expanded details; switched to querying by `span.truncate` class to get only main job cards
+  - Added sorting by created_at in component to ensure newest-first ordering regardless of backend sorting
+  - Fixed TypeScript error by changing `import { JobSummary }` to `import type { JobSummary }` for type-only import
+  - Fixed CollapsibleTrigger asChild prop issue by removing `asChild` and directly nesting Card inside CollapsibleTrigger
+  - Fixed duplicate closing tag for CollapsibleTrigger that caused JSX syntax error
+- Test: `cd frontend && pnpm test --run tests/history.test.tsx` — **PASS** (11 tests)
 - Also verified: `cd frontend && pnpm tsc --noEmit` — **PASS**
 - Also verified: `cd frontend && pnpm build` — **PASS**
 
