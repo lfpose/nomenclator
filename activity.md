@@ -66,3 +66,14 @@
 - Configured http_service with internal_port 8080, force_https, auto_start_machines, and health check on /health
 - Verified TOML syntax using Python's tomllib (fly CLI not available in dev environment)
 - Test: `fly config validate` — **PASS** (TOML syntax valid; all required fields present and correct)
+
+### 2026-04-15 — P01-08: Dev scripts (Makefile)
+- Created `Makefile` with targets: install, test, lint, format, dev-backend, dev-frontend, build
+- install: runs `uv sync --extra dev` in backend and `pnpm install` in frontend
+- test: runs `pytest` in backend and `pnpm test --run` in frontend
+- lint: runs `ruff check` in backend and `pnpm tsc --noEmit` in frontend
+- format: runs `ruff format` in backend and `pnpm prettier --write src/` in frontend
+- dev-backend: runs uvicorn with reload on port 8080
+- dev-frontend: runs `pnpm dev`
+- build: builds frontend and Docker image
+- Test: `make lint && make test` — **PASS** (ruff check passed, tsc passed, 2 backend tests passed, 4 frontend tests passed)

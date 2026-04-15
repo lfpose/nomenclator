@@ -122,7 +122,7 @@ Key features: prompt review (optional AI validation), row subset (test with firs
       "Verify: make lint && make test both exit 0"
     ],
     "test": "make lint && make test",
-    "passes": false
+    "passes": true
   },
   {
     "id": "P01-09",
