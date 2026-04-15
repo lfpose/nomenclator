@@ -207,3 +207,11 @@
 - Created fixture CSV files in `backend/tests/fixtures/csv/`: basic_comma.csv, basic_semicolon.csv, with_bom.csv (UTF-8 BOM), multi_column.csv, empty_data.csv (header only), non_utf8.csv (Latin-1 encoded)
 - Created `backend/tests/csv/test_parser.py` with 8 assertions covering all error cases and successful parsing scenarios
 - Test: `cd backend && uv run pytest tests/csv/test_parser.py -v` — **PASS** (8 tests)
+
+### 2026-04-15 — P03-03: Pasted text parser
+- Extended `backend/app/csv_io/parser.py` with `parse_text(raw: str) -> list[str]` function
+- parse_text splits text by newlines, strips whitespace from each line, filters out empty lines
+- Raises CSVError('input_empty') when no non-empty lines found
+- Raises CSVError('input_too_large') when more than 50,000 lines
+- Created `backend/tests/csv/test_parse_text.py` with 5 assertions: one per line, skips blank lines, strips whitespace, empty raises error, too large raises error
+- Test: `cd backend && uv run pytest tests/csv/test_parse_text.py -v` — **PASS** (5 tests)

@@ -49,3 +49,13 @@ def parse_csv(raw: bytes) -> list[str]:
         raise CSVError("input_too_large", f"Row count {df.shape[0]} exceeds 50,000.")
 
     return df.iloc[:, 0].tolist()
+
+
+def parse_text(raw: str) -> list[str]:
+    lines = [line.strip() for line in raw.splitlines()]
+    lines = [line for line in lines if line]
+    if not lines:
+        raise CSVError("input_empty", "No titles found.")
+    if len(lines) > 50_000:
+        raise CSVError("input_too_large", f"Line count {len(lines)} exceeds 50,000.")
+    return lines
