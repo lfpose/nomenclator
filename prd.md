@@ -419,8 +419,8 @@ Key features: prompt review (optional AI validation), row subset (test with firs
       "Extend test_similarity.py with 5 assertions (shape NxN, diagonal=100, symmetric, Spanish title examples)",
       "Verify: cd backend && uv run pytest tests/cluster/test_similarity.py::test_compute_similarity -v"
     ],
-    "test": "cd backend && uv run pytest tests/cluster/test_similarity.py::test_compute_similarity -v",
-    "passes": false
+    "test": "cd backend && uv run pytest tests/cluster/test_similarity.py::v -k compute_similarity",
+    "passes": true
   },
   {
     "id": "P04-04",

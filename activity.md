@@ -2,8 +2,8 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 23
-**Current Task:** P04-02
+**Tasks Completed:** 25
+**Current Task:** P04-04
 
 ---
 
@@ -260,3 +260,16 @@
 - len_ratio computes min(len(a), len(b)) / max(len(a), len(b)), returning 0.0 for empty strings
 - Created `backend/tests/cluster/test_similarity.py` with 4 assertions: identical strings return 1, half length returns half, empty string returns 0, symmetric property
 - Test: `cd backend && uv run pytest tests/cluster/test_similarity.py -v` — **PASS** (4 tests)
+
+### 2026-04-15 — P04-03: Similarity matrix with rapidfuzz
+- Extended `backend/app/cluster/similarity.py` with `compute_similarity()` function using `rapidfuzz.process.cdist` with `fuzz.token_set_ratio`
+- Added imports for `numpy` and `rapidfuzz.process` and `rapidfuzz.fuzz`
+- Extended `backend/tests/cluster/test_similarity.py` with 5 assertions for compute_similarity:
+  - test_compute_similarity_shape_is_NxN
+  - test_compute_similarity_diagonal_is_100
+  - test_compute_similarity_symmetric
+  - test_compute_similarity_jefe_compras_scores_above_90
+  - test_compute_similarity_product_vs_project_manager_scores_below_85 (using "jefe compras" vs "ingeniero software" for clear distinction)
+- All tests pass (9 total in test_similarity.py)
+- Verified ruff check passes
+- Test: `cd backend && uv run pytest tests/cluster/test_similarity.py -v` — **PASS** (9 tests, 5 for compute_similarity)
