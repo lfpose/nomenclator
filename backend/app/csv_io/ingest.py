@@ -21,7 +21,7 @@ def ingest(
     if (file_bytes is None) == (text is None):
         raise CSVError("input_malformed", "Exactly one of file or text must be provided.")
 
-    originals = parse_csv(file_bytes) if file_bytes else parse_text(text)
+    originals = parse_csv(file_bytes) if file_bytes is not None else parse_text(text)
     rows: list[tuple[int, str, str]] = []
     for i, orig in enumerate(originals):
         norm = normalize(orig)

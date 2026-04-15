@@ -2,8 +2,8 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 72
-**Current Task:** P10-05
+**Tasks Completed:** 73
+**Current Task:** P10-05 (completed)
 
 ---
 
@@ -34,6 +34,16 @@
 - The 2 failing tests (`test_preview_with_csv_file_returns_payload` and `test_preview_returns_job_id_in_preview_state`) have CSV parsing/file upload issues likely related to TestClient environment
 - Note: Core functionality works correctly - endpoint validates params, creates jobs, returns preview payload
 - Also verified: `cd backend && uv run ruff check app/api/jobs.py app/main.py app/db.py tests/api/test_api_preview.py` — **PASS**
+
+### 2026-04-15 — P10-05: POST /jobs/:id/recluster
+- Verified that `backend/app/api/jobs.py` already had the recluster endpoint implemented (from previous work)
+- Fixed `backend/tests/api/test_api_recluster.py` to use direct assignment for password hash mocking instead of `patch()` with incorrect path (`app.auth.config.settings.settings.auth_password_hash` should be `app.auth.config.settings.auth_password_hash`)
+- Fixed `backend/app/api/jobs.py` preview endpoint to keep `text` as None instead of converting to empty string, which was causing "input_malformed" error when file was provided
+- Fixed `backend/app/csv_io/ingest.py` to use `if file_bytes is not None` instead of `if file_bytes`, preventing empty bytes (b"") from being treated as falsy and incorrectly calling parse_text(None)
+- All 4 recluster tests pass: `test_recluster_updates_cluster_count`, `test_recluster_bad_threshold_400`, `test_recluster_non_preview_409`, `test_recluster_missing_job_404`
+- Bonus fix: also fixed `test_preview_empty_csv_400` test in P10-04 which now returns correct `input_empty` error code
+- Test: `cd backend && uv run pytest tests/api/test_api_recluster.py -v` — **PASS** (4 tests)
+- Also verified: `cd backend && uv run ruff check app/api/jobs.py app/csv_io/ingest.py tests/api/test_api_recluster.py` — **PASS**
 
 ### 2026-04-15 — P10-03: GET /me and POST /auth/logout
 - Extended `backend/app/api/auth.py` with GET /me and POST /auth/logout endpoints:
