@@ -2,12 +2,45 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 110
-**Current Task:** P14-08 (completed)
+**Tasks Completed:** 111
+**Current Task:** P14-09 (completed)
 
 ---
 
 ## Session Log
+
+### 2026-04-15 — P14-09: Job status panel with polling
+- Created `frontend/src/hooks/useJobPolling.ts` with polling hook:
+  - Polls `/jobs/:id` endpoint every 5 seconds while job is non-terminal
+  - Stops polling when job reaches terminal status (completed, failed, cancelled)
+  - Returns job state and error from polling
+  - Uses useEffect with cleanup function to manage interval and prevent memory leaks
+  - Accepts jobId and enabled parameters
+- Created `frontend/src/components/JobStatusPanel.tsx` with status panel component:
+  - Displays job status badge with appropriate color variant
+  - Shows processing indicator with Spinner while job is running
+  - Displays progress information (row count, estimated cost, cluster resolution)
+  - Shows retry round badge when retry_round > 0
+  - Download button appears when job is in terminal status
+  - Cancel button shown for non-terminal jobs with confirmation dialog
+  - Error state shown when polling fails
+  - Loading state shown while initial poll is in progress
+  - Uses statusColors mapping to determine badge color variants
+  - Calls onCancel callback when job is successfully cancelled
+- Created `frontend/tests/job-status.test.tsx` with 5 assertions:
+  - `polls /jobs/:id every 5s while running`: verifies hook is called with jobId and enabled=true, shows running status and processing indicator
+  - `stops polling when terminal status reached`: verifies completed status is displayed, download button appears, cancel button is hidden
+  - `shows retry_round in UI when > 0`: verifies retry round badge is shown for jobs with retry_round > 0
+  - `download button appears on completed`: verifies download button (anchor tag) appears when job is completed
+  - `cancel button disappears on terminal`: verifies cancel button and confirmation buttons are hidden when job is in terminal status
+- Fixed issues during implementation:
+  - Initially used fake timers which caused test timeouts; simplified tests to mock useJobPolling hook instead
+  - Updated JobStatusPanel to pass enabled=true parameter to useJobPolling hook
+  - Used relative imports (../src/...) instead of path aliases (@/src/...) in tests to match existing test patterns
+  - Created inline download link for completed jobs (DownloadButton component will be created in P14-12)
+- Test: `cd frontend && pnpm test --run tests/job-status.test.tsx` — **PASS** (5 tests)
+- Also verified: `cd frontend && pnpm tsc --noEmit` — **PASS**
+- Also verified: `cd frontend && pnpm build` — **PASS**
 
 ### 2026-04-15 — P14-08: Submit button → commit
 - Created `frontend/src/components/SubmitButton.tsx` with commit button functionality:
