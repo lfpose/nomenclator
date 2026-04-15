@@ -2,12 +2,34 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 108
-**Current Task:** P14-06 (completed)
+**Tasks Completed:** 109
+**Current Task:** P14-07 (completed)
 
 ---
 
 ## Session Log
+
+### 2026-04-15 — P14-07: Top clusters table
+- Created `frontend/src/components/TopClustersTable.tsx` with expandable table showing top clusters:
+  - Uses shadcn Table component with expandable rows
+  - Shows cluster representative and member count in each row
+  - Members list hidden by default (using state to track expanded rows)
+  - Clicking a row toggles expansion to show/hide members list
+  - Uses ChevronRight (collapsed) and ChevronDown (expanded) icons
+  - Members displayed as a bulleted list with text-muted-foreground styling
+  - Shows empty message when no clusters are present
+- Created `frontend/tests/top-clusters.test.tsx` with 4 assertions:
+  - `renders one row per cluster`: verifies all cluster representatives and member counts are rendered
+  - `members hidden by default`: verifies members are not visible initially and ChevronRight icon is shown
+  - `click expands members list`: verifies clicking a row shows members and changes icon to ChevronDown
+  - `shows member count`: verifies member counts are displayed correctly in the table
+- Fixed issue with React.Fragment import causing React undefined error by switching to shorthand fragment syntax `</>`
+- Removed unused React import flagged by TypeScript compiler
+- Test: `cd frontend && pnpm test --run tests/top-clusters.test.tsx` — **PASS** (4 tests)
+- Also verified: `cd frontend && pnpm tsc --noEmit` — **PASS**
+- Also verified: `cd frontend && pnpm build` — **PASS**
+
+---
 
 ### 2026-04-15 — P14-05: Advanced disclosure
 - Created `frontend/src/components/AdvancedPanel.tsx` with collapsible panel containing:
