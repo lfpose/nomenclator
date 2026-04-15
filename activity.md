@@ -2,8 +2,8 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 17
-**Current Task:** P02-10
+**Tasks Completed:** 18
+**Current Task:** P02-11
 
 ---
 
@@ -170,3 +170,14 @@
 - reset_date_approx: returns the approximate reset date (oldest entry + 30 days) or None if no entries in window
 - Created `backend/tests/dao/test_spend_log.py` with 4 assertions
 - Test: `cd backend && uv run pytest tests/dao/test_spend_log.py -v` — **PASS** (4 tests)
+
+### 2026-04-15 — P02-11: DAO: sessions
+- Created `backend/app/dao/sessions.py` with Session dataclass and 4 functions: create_session, get_valid_session, delete_session, purge_expired
+- create_session: stores session_id_hash (SHA-256 of raw token) with created_at and expires_at (now + ttl_seconds, default 30 days)
+- get_valid_session: retrieves session by hash only if not expired (expires_at > now), returns None otherwise
+- delete_session: removes session row by session_id_hash
+- purge_expired: deletes all sessions where expires_at <= now, returns count of deleted rows
+- Updated existing `backend/tests/dao/test_sessions.py` with 5 assertions including hash-not-raw security check
+- hash-not-raw check verifies that only the SHA-256 hash is stored in the database, not the raw session token
+- Test: `cd backend && uv run pytest tests/dao/test_sessions.py -v` — **PASS** (5 tests)
+- Also verified: all DAO tests pass (40 tests total)
