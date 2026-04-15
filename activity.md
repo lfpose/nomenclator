@@ -2,8 +2,8 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 28
-**Current Task:** P04-07
+**Tasks Completed:** 29
+**Current Task:** P04-08
 
 ---
 
@@ -334,3 +334,15 @@
 - Fixed unused Counter import flagged by ruff
 - Test: `cd backend && uv run pytest tests/cluster/test_determinism.py -v` — **PASS** (2 tests)
 - Also verified: `cd backend && uv run ruff check tests/cluster/test_determinism.py` — **PASS**
+
+### 2026-04-15 — P04-08: Performance guard
+- Created `backend/tests/cluster/test_performance.py` with `test_clustering_2k_uniques_under_5s` assertion
+- Implemented `_generate_synthetic_spanish_titles()` function that generates 2,000 unique synthetic Spanish job titles using role/dept combinations with numeric suffixes for uniqueness
+- Added case variants for realism (title case, uppercase, lowercase)
+- Test generates 2,000 unique normalized values and times `run_clustering` with threshold 90
+- Also includes basic sanity checks: all rows assigned to clusters, member count matches input
+- Made minor optimizations to clustering implementation:
+  - Updated `run_clustering` in `pipeline.py` to pass threshold as `score_cutoff` to `compute_similarity`
+  - Added `processor=None` to `compute_similarity` in `similarity.py` since strings are already normalized
+- Test: `cd backend && uv run pytest tests/cluster/test_performance.py -v` — **PASS** (1 test, 1.94s)
+- Also verified: all 35 cluster tests pass, ruff check passes

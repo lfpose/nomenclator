@@ -37,6 +37,7 @@ def compute_similarity(
         strings,
         strings,
         scorer=fuzz.token_set_ratio,
+        processor=None,  # strings are already normalized
         score_cutoff=score_cutoff,
         dtype=np.uint8,
     )

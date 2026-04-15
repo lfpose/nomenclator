@@ -105,7 +105,7 @@ def run_clustering(
     if not uniques:
         return []
 
-    matrix = compute_similarity(uniques, score_cutoff=0)
+    matrix = compute_similarity(uniques, score_cutoff=threshold)
     comps = build_components(uniques, matrix, threshold)
 
     results: list[ClusterResult] = []
