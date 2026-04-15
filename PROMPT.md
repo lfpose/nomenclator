@@ -56,13 +56,14 @@ When the test passes, update that task's `"passes"` field in prd.md from `false`
 
 ## Commit Changes
 
-Make one git commit for that task only:
+Make one git commit for that task only, then push:
 ```bash
 git add -A
 git commit -m "P01-01: create directory structure"
+git push
 ```
 
-Use the task ID as the commit prefix. Do NOT push.
+Use the task ID as the commit prefix.
 
 ## Important Rules
 
