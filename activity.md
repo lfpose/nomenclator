@@ -2,12 +2,35 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 104
-**Current Task:** P14-03 (completed)
+**Tasks Completed:** 105
+**Current Task:** P14-04 (completed)
 
 ---
 
 ## Session Log
+
+### 2026-04-15 — P14-04: Taxonomy textarea
+- Created `frontend/src/components/TaxonomyInput.tsx` with controlled textarea for taxonomy input:
+  - Props: value (optional), onChange (optional), placeholder, label, id, rows, disabled
+  - Supports both controlled and uncontrolled modes (controlled when value prop is provided, uncontrolled otherwise)
+  - Uses internal state for uncontrolled mode with useState hook
+  - Controlled value: isControlled = controlledValue !== undefined
+  - Calls onChange callback and updates internal state appropriately
+  - Default placeholder: "Enter optional taxonomy (one category per line)"
+  - Default label: "Taxonomy (optional)"
+  - Default id: "taxonomy"
+  - Default rows: 10
+  - Textarea has font-mono and text-sm classes for code-like appearance
+- Created `frontend/tests/taxonomy.test.tsx` with 3 assertions:
+  - `renders with default placeholder`: verifies component renders with default placeholder text
+  - `accepts multiline input`: verifies textarea accepts and handles multiline input with line breaks, onChange called for each character, last call has full text
+  - `emits change events`: verifies custom label and placeholder work, onChange emits events for each keystroke
+- Fixed component to support both controlled and uncontrolled modes to work correctly in tests
+- Test: `cd frontend && pnpm test --run tests/taxonomy.test.tsx` — **PASS** (3 tests)
+- Also verified: `cd frontend && pnpm tsc --noEmit` — **PASS**
+- Also verified: `cd frontend && pnpm build` — **PASS**
+
+---
 
 ### 2026-04-15 — P14-03: Upload + paste input component
 - Created `frontend/src/components/InputArea.tsx` combining DropZone with collapsible paste textarea:
