@@ -2,12 +2,35 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 98
-**Current Task:** P13-05 (completed)
+**Tasks Completed:** 99
+**Current Task:** P13-06 (completed)
 
 ---
 
 ## Session Log
+
+### 2026-04-15 — P13-06: DropZone component
+- Created `frontend/src/components/DropZone.tsx` with:
+  - Props: `onFile` callback and optional `accept` string (default ".csv")
+  - Hidden `<input type="file">` that opens on click
+  - Drag-and-drop handlers for `dragOver`, `dragLeave`, and `drop` events
+  - Visual state: `isDragging` applies `border-primary` and `bg-primary/5` classes
+  - Tailwind-styled div with `border-2 border-dashed rounded-lg p-8 text-center cursor-pointer`
+  - Hover state: `hover:border-primary` for visual feedback
+  - Prevents default behavior on drag events
+  - Calls `onFile(file)` with dropped or selected file
+- Created `frontend/tests/dropzone.test.tsx` with 4 assertions:
+  - `test("handles file drop event")`: verifies file drop event is processed and onFile is called with the file
+  - `test("click opens file picker")`: verifies clicking opens the hidden file input element
+  - `test("shows drag-over visual state")`: verifies drag-over state is applied and removed on dragLeave
+  - `test("calls onFile callback with dropped file")`: verifies onFile receives correct File instance with proper name
+- All tests use `fireEvent` from @testing-library/react to simulate drag and drop events
+- Tests create `File` objects with `new File(["data"], "test.csv", { type: "text/csv" })`
+- Test: `cd frontend && pnpm test --run tests/dropzone.test.tsx` — **PASS** (4 tests)
+- Also verified: `cd frontend && pnpm build` — **PASS**
+- Also verified: `cd frontend && pnpm tsc --noEmit` — **PASS**
+
+---
 
 ### 2026-04-15 — P13-05: Root layout
 - Added `logout()` function to `frontend/src/lib/api.ts` that calls POST /auth/logout
