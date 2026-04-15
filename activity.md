@@ -2,8 +2,8 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 95
-**Current Task:** P13-02 (completed)
+**Tasks Completed:** 96
+**Current Task:** P13-03 (completed)
 
 ---
 
@@ -23,6 +23,29 @@
 - Test: `cd frontend && pnpm test --run tests/theme.test.tsx` — **PASS** (3 tests)
 - Also verified: `cd frontend && pnpm build` — **PASS**
 - Also verified: `cd frontend && pnpm tsc --noEmit` — **PASS**
+
+---
+
+### 2026-04-15 — P13-03: Fetch client (with session cookie)
+- Created `frontend/src/lib/api.ts` with typed fetch helpers:
+  - `APIError` class with code, message, and status fields
+  - `APIErrorResponse`, `APIErrorDetail` interfaces for error envelope types
+  - `get()`, `post()`, `postForm()` functions wrapping fetch with `credentials: 'include'`
+  - `parseErrorResponse()` function to extract error codes from backend error envelope format
+  - Error handling for structured errors, plain string details (FastAPI default), and unknown formats
+- Created `frontend/tests/api.test.ts` with 11 assertions covering:
+  - `get()` returns parsed JSON on 200 response
+  - `get()` throws APIError on 4xx responses
+  - Error objects have correct code, message, and status fields
+  - `post()` sends JSON body with correct headers
+  - Credentials 'include' is set for all requests
+  - `postForm()` sends FormData without Content-Type header (browser sets it with boundary)
+  - APIError class properties and instanceof Error
+  - Edge cases: plain string detail, non-JSON response, unknown error format
+- All tests use vi.fn() to mock fetch with realistic response shapes
+- Test: `cd frontend && pnpm test --run tests/api.test.ts` — **PASS** (11 tests)
+- Also verified: `cd frontend && pnpm build` — **PASS**
+- Also verified: `cd frontend && pnpm tsc --noEmit` — **PASS** (no errors)
 
 ---
 
