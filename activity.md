@@ -224,3 +224,10 @@
 - Returns list of tuples (index, original, normalized) for valid rows
 - Created `backend/tests/csv/test_ingest.py` with 6 assertions: CSV bytes returns indexed triples, text returns indexed triples, blank row raises error, preserves original untouched, both sources raises error, neither source raises error
 - Test: `cd backend && uv run pytest tests/csv/test_ingest.py -v` — **PASS** (6 tests)
+
+### 2026-04-15 — P03-05: Exact dedup helper
+- Created `backend/app/csv_io/dedup.py` with `unique_normalized(rows)` function
+- unique_normalized takes list of (row_index, original, normalized) tuples and returns unique normalized values preserving insertion order
+- Uses dict to track seen values (preserves order in Python 3.7+), first occurrence wins
+- Created `backend/tests/csv/test_dedup.py` with 4 assertions: removes exact duplicates, preserves first occurrence order, empty returns empty, already unique returns same length
+- Test: `cd backend && uv run pytest tests/csv/test_dedup.py -v` — **PASS** (4 tests)

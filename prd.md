@@ -355,7 +355,7 @@ Key features: prompt review (optional AI validation), row subset (test with firs
       "Verify: cd backend && uv run pytest tests/csv/test_dedup.py -v"
     ],
     "test": "cd backend && uv run pytest tests/csv/test_dedup.py -v",
-    "passes": false
+    "passes": true
   },
   {
     "id": "P03-06",
