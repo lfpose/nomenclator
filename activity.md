@@ -2,12 +2,21 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 35
-**Current Task:** P05-07
+**Tasks Completed:** 36
+**Current Task:** P05-08
 
 ---
 
 ## Session Log
+
+### 2026-04-15 — P05-08: Anthropic client wrapper
+- Created `backend/app/anthropic/client.py` with `AnthropicBatchClient` Protocol (decorated with @runtime_checkable) and `RealAnthropicClient` implementation
+- Protocol defines 4 methods: submit_batch(requests) -> str, get_batch_status(batch_id) -> dict, get_batch_results(batch_id) -> list[dict], cancel_batch(batch_id) -> None
+- RealAnthropicClient wraps the Anthropic SDK's messages.batches API (create, retrieve, results, cancel)
+- Created `backend/tests/anthropic/test_client.py` with 3 assertions: test_protocol_accepts_fake_client (structural typing), test_real_client_initializes_with_api_key (no exceptions, isinstance check), test_fake_client_sanity_check (submit, status, results, cancel operations)
+- Fixed Protocol to use @runtime_checkable decorator to enable isinstance() checks
+- Test: `cd backend && uv run pytest tests/anthropic/test_client.py -v` — **PASS** (3 tests)
+- Also verified: `cd backend && uv run ruff check app/anthropic/client.py tests/anthropic/test_client.py` — **PASS**
 
 ### 2026-04-15 — P05-07: Straggler detection
 - Extended `backend/app/anthropic/response_parser.py` with `StragglerAnalysis` dataclass and `analyze_stragglers()` function
