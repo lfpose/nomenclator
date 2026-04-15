@@ -2,8 +2,8 @@
 
 ## Current Status
 **Last Updated:** 2026-04-15
-**Tasks Completed:** 11
-**Current Task:** P02-04
+**Tasks Completed:** 12
+**Current Task:** P02-05
 
 ---
 
@@ -114,3 +114,9 @@
 - Created `backend/tests/dao/test_task_templates.py` with 3 assertions: seed row returned, None for nonexistent, JSON fields parsed
 - Added conn fixture for in-memory SQLite with migrations applied (will be moved to conftest.py in P02-12)
 - Test: `cd backend && uv run pytest tests/dao/test_task_templates.py -v` — **PASS** (3 tests)
+
+### 2026-04-15 — P02-05: DAO: jobs
+- Created `backend/app/dao/jobs.py` with Job dataclass and 6 functions: create_job, get_job, list_jobs, update_job_status, update_job_counts, count_active_jobs
+- Created `backend/tests/dao/test_jobs.py` with 9 assertions covering all functions including row_subset and dry_run params
+- Fixed test_list_jobs_ordered_newest_first to use explicit timestamps for reliable ordering
+- Test: `cd backend && uv run pytest tests/dao/test_jobs.py -v` — **PASS** (9 tests)
