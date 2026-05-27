@@ -1,0 +1,139 @@
+{
+  "job_id": "06092246-215b-4e68-9d9e-04796988c0d2",
+  "total_rows": 594,
+  "total_input_rows": 594,
+  "selected_rows": 594,
+  "exact_unique_rows": 589,
+  "cluster_count": 536,
+  "largest_cluster_size": 8,
+  "est_cost_usd": 0.0726,
+  "top_clusters": [
+    {
+      "cluster_id": 1593,
+      "representative": "Gerente Operaciones",
+      "normalized_key": "gerente operaciones",
+      "member_count": 8,
+      "members": [
+        "Gerente de Operacion",
+        "Gerente de operaciones",
+        "Gerente general de operaciones",
+        "Gerente Operaciones",
+        "Sub gerente Operaciones",
+        "Sub-Gerente de Operaciones",
+        "Subgerente de operaciones",
+        "Subgerente De Operaciones Y Servicios"
+      ]
+    },
+    {
+      "cluster_id": 1205,
+      "representative": "Gerente de Adm. y Finanzas",
+      "normalized_key": "gerente de adm y finanzas",
+      "member_count": 4,
+      "members": [
+        "Director De Finanzas Y Administración",
+        "Gerente de Adm. y Finanzas",
+        "Gerente de Administración y Finanzas",
+        "Gerente De Finanzas Y Administracion"
+      ]
+    },
+    {
+      "cluster_id": 1350,
+      "representative": "Gerente de Recursos Humanos",
+      "normalized_key": "gerente de recursos humanos",
+      "member_count": 4,
+      "members": [
+        "Gerente de Recursos Humanos",
+        "Gerente Sr. Recursos Humanos",
+        "Subgerente de recursos humanos",
+        "Subgerente de Recursos Humanos para Operaciones"
+      ]
+    },
+    {
+      "cluster_id": 1391,
+      "representative": "Subgerente de Personas",
+      "normalized_key": "subgerente de personas",
+      "member_count": 4,
+      "members": [
+        "Gerente Gestion de Personas",
+        "Sub-Gerente Gestion de Personas",
+        "Subgerente de Gestión de Personas",
+        "Subgerente de Personas"
+      ]
+    },
+    {
+      "cluster_id": 1453,
+      "representative": "Human Resources Partner",
+      "normalized_key": "human resources partner",
+      "member_count": 4,
+      "members": [
+        "Human Resources Business Partner",
+        "Human Resources Business Partner Director",
+        "Human Resources Business Partner MS",
+        "Human Resources Partner"
+      ]
+    },
+    {
+      "cluster_id": 1206,
+      "representative": "Director de operaciones",
+      "normalized_key": "director de operaciones",
+      "member_count": 3,
+      "members": [
+        "Director de operaciones",
+        "Directora de operaciones",
+        "Directora Ejecutiva Operaciones"
+      ]
+    },
+    {
+      "cluster_id": 1214,
+      "representative": "Director de Recursos Humanos",
+      "normalized_key": "director de recursos humanos",
+      "member_count": 3,
+      "members": [
+        "Director de Recursos Humanos",
+        "Directora Corporativa de Recursos Humanos",
+        "Directora de Recursos Humanos"
+      ]
+    },
+    {
+      "cluster_id": 1310,
+      "representative": "Gerente Desarrollo Organizacional",
+      "normalized_key": "gerente desarrollo organizacional",
+      "member_count": 3,
+      "members": [
+        "Gerente de Desarrollo Organizacional",
+        "Gerente Desarrollo Organizacional",
+        "Jefe de Desarrollo Organizacional"
+      ]
+    },
+    {
+      "cluster_id": 1355,
+      "representative": "Gerente Regional Recursos Humanos",
+      "normalized_key": "gerente regional recursos humanos",
+      "member_count": 3,
+      "members": [
+        "Gerente de Recursos Humanos Regional",
+        "Gerente regional de recursos humanos",
+        "Gerente Regional Recursos Humanos"
+      ]
+    },
+    {
+      "cluster_id": 1358,
+      "representative": "Jefe De Relaciones Laborales",
+      "normalized_key": "jefe de relaciones laborales",
+      "member_count": 3,
+      "members": [
+        "Gerente De Relaciones Laborales",
+        "Jefe De Relaciones Laborales",
+        "Subgerente de Relaciones Laborales"
+      ]
+    }
+  ],
+  "warnings": [],
+  "size_distribution": {
+    "1": 500,
+    "2": 23,
+    "3": 8,
+    "4": 4,
+    "8": 1
+  }
+}

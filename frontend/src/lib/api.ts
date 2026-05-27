@@ -33,30 +33,53 @@ export class APIError extends Error {
  * Backend returns: { detail: { error: { code, message } } }
  */
 async function parseErrorResponse(response: Response): Promise<APIError> {
-  let data: any;
+  let raw = "";
+  let data: any = null;
   try {
-    data = await response.json();
+    raw = await response.text();
+    data = raw ? JSON.parse(raw) : null;
   } catch {
-    throw new APIError("unknown_error", "Failed to parse error response", response.status);
-  }
-
-  // Handle FastAPI default error format
-  if (data.detail && typeof data.detail === "string") {
-    throw new APIError("unknown_error", data.detail, response.status);
-  }
-
-  // Handle our structured error format
-  if (data.detail?.error?.code && data.detail?.error?.message) {
+    // Non-JSON body: surface the text directly so the dev sees what came back.
     throw new APIError(
-      data.detail.error.code,
-      data.detail.error.message,
+      "unknown_error",
+      raw.slice(0, 500) || `HTTP ${response.status}`,
       response.status,
-      data.detail
+      { raw_body: raw.slice(0, 2000), url: response.url }
     );
   }
 
-  // Handle unknown format
-  throw new APIError("unknown_error", "An unknown error occurred", response.status);
+  // Our structured envelope (current backend): { error: { code, message, details } }
+  if (data?.error?.code) {
+    return new APIError(
+      data.error.code,
+      data.error.message || `HTTP ${response.status}`,
+      response.status,
+      { ...(data.error.details || {}), url: response.url }
+    );
+  }
+
+  // Legacy / wrapped: { detail: { error: { ... } } }
+  if (data?.detail?.error?.code) {
+    return new APIError(
+      data.detail.error.code,
+      data.detail.error.message || `HTTP ${response.status}`,
+      response.status,
+      { ...(data.detail.error.details || {}), url: response.url }
+    );
+  }
+
+  // FastAPI default: { detail: "..." } or { detail: [...] }
+  if (data?.detail) {
+    const msg = typeof data.detail === "string" ? data.detail : JSON.stringify(data.detail);
+    return new APIError("http_error", msg, response.status, { raw: data, url: response.url });
+  }
+
+  return new APIError(
+    "unknown_error",
+    `HTTP ${response.status}`,
+    response.status,
+    { raw: data, raw_body: raw.slice(0, 2000), url: response.url }
+  );
 }
 
 /**

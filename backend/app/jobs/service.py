@@ -7,11 +7,14 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from app.anthropic.request_builder import TitleInput, build_request_params, build_system_prompt
-from app.cluster.pipeline import run_clustering
+from app.cluster.pipeline import run_clustering, compute_embeddings_for_rows
+from app.csv_io.normalize import normalize as _normalize
+from app.settings import settings as app_settings
 from app.csv_io.ingest import ingest
 from app.dao import batches as batches_dao
 from app.dao import batch_requests as batch_requests_dao
 from app.dao import clusters as clusters_dao
+from app.dao import embeddings_cache as embeddings_cache_dao
 from app.dao import job_rows as job_rows_dao
 from app.dao import jobs as jobs_dao
 from app.dao import task_templates as task_templates_dao
@@ -74,8 +77,10 @@ class PreviewResult:
     cluster_count: int
     largest_cluster_size: int
     est_cost_usd: float
-    top_clusters: list[dict]  # {representative, member_count, members}
+    top_clusters: list[dict]  # {cluster_id, representative, normalized_key, member_count, members}
     warnings: list[dict]  # {type, cluster_id, ...}
+    size_distribution: dict[int, int]  # cluster_size -> number_of_clusters
+    clustering_mode: str  # "embeddings" or "fuzzy"
 
 
 def create_preview_job(
@@ -87,6 +92,7 @@ def create_preview_job(
     titles_per_request: int = 25,
     row_subset_mode: str = "all",
     row_subset_n: int | None = None,
+    canonical_titles: list[str] | None = None,
 ) -> PreviewResult:
     """Create a preview job by ingesting, clustering, and persisting data.
 
@@ -126,16 +132,30 @@ def create_preview_job(
     rows = apply_row_subset(rows, row_subset_mode, row_subset_n, job_id)
     total_rows = len(rows)
 
-    # Step 4: Run clustering
-    cluster_results = run_clustering(rows, threshold)
+    # Step 4: Compute embeddings (once) then cluster
+    precomputed_uniques = None
+    precomputed_embeddings = None
+    if app_settings.openai_api_key:
+        precomputed_uniques, precomputed_embeddings = compute_embeddings_for_rows(rows, app_settings.openai_api_key)
+
+    cluster_results = run_clustering(
+        rows, threshold,
+        openai_api_key=app_settings.openai_api_key,
+        canonical_titles=canonical_titles,
+        precomputed_uniques=precomputed_uniques,
+        precomputed_embeddings=precomputed_embeddings,
+    )
     cluster_count = len(cluster_results)
 
-    # Step 5: Bulk insert job rows (only the subset)
+    # Step 5: Bulk insert job rows and persist embeddings for future reclusters
     job_rows_dao.bulk_insert_rows(conn, job_id, rows)
+    if precomputed_uniques and precomputed_embeddings is not None:
+        embeddings_cache_dao.save(conn, job_id, precomputed_uniques, precomputed_embeddings)
 
     # Step 6: Insert clusters and assign to rows
     warnings: list[dict] = []
     largest_cluster_size = 0
+    cluster_db_id_by_norm_key: dict[str, int] = {}
 
     # Fetch all inserted job rows with their IDs (ordered by row_index)
     all_job_rows = job_rows_dao.list_rows(conn, job_id)
@@ -150,6 +170,7 @@ def create_preview_job(
             normalized_key=cluster.normalized_key,
             member_count=cluster.member_count,
         )
+        cluster_db_id_by_norm_key[cluster.normalized_key] = cluster_db_id
 
         # Track largest cluster
         if cluster.member_count > largest_cluster_size:
@@ -198,19 +219,26 @@ def create_preview_job(
 
     # Step 11: Build top clusters (largest 10)
     sorted_clusters = sorted(cluster_results, key=lambda c: c.member_count, reverse=True)[:10]
-    # Build a mapping from row_index to original for efficient lookup
-    original_by_index = {r.row_index: r.original for r in all_job_rows}
+    row_by_index = {r.row_index: r for r in all_job_rows}
     top_clusters = [
         {
+            "cluster_id": cluster_db_id_by_norm_key[c.normalized_key],
             "representative": c.representative_original,
+            "normalized_key": c.normalized_key,
             "member_count": c.member_count,
-            "members": [
-                original_by_index[idx]
+            "members": [row_by_index[idx].original for idx in sorted(c.member_row_indices)],
+            "member_sims": [
+                round(c.norm_to_sim.get(_normalize(row_by_index[idx].original), 100.0), 1)
                 for idx in sorted(c.member_row_indices)
             ],
         }
         for c in sorted_clusters
     ]
+
+    # Step 12: Build size distribution (cluster_size -> count of clusters of that size)
+    size_distribution: dict[int, int] = {}
+    for c in cluster_results:
+        size_distribution[c.member_count] = size_distribution.get(c.member_count, 0) + 1
 
     return PreviewResult(
         job_id=job_id,
@@ -223,6 +251,8 @@ def create_preview_job(
         est_cost_usd=est_cost,
         top_clusters=top_clusters,
         warnings=warnings,
+        size_distribution=size_distribution,
+        clustering_mode="embeddings" if app_settings.openai_api_key else "fuzzy",
     )
 
 
@@ -230,6 +260,7 @@ def recluster_job(
     conn: "Connection",
     job_id: str,
     threshold: int,
+    canonical_titles: list[str] | None = None,
 ) -> PreviewResult:
     """Recluster an existing job with a new threshold.
 
@@ -265,8 +296,21 @@ def recluster_job(
     # Step 4: Clear cluster assignments from job rows
     job_rows_dao.clear_clusters(conn, job_id)
 
-    # Step 5: Run clustering with new threshold
-    cluster_results = run_clustering(rows, threshold)
+    # Step 5: Load cached embeddings (if available) then cluster
+    precomputed_uniques = None
+    precomputed_embeddings = None
+    if app_settings.openai_api_key:
+        cached = embeddings_cache_dao.load(conn, job_id)
+        if cached:
+            precomputed_uniques, precomputed_embeddings = cached
+
+    cluster_results = run_clustering(
+        rows, threshold,
+        openai_api_key=app_settings.openai_api_key,
+        canonical_titles=canonical_titles,
+        precomputed_uniques=precomputed_uniques,
+        precomputed_embeddings=precomputed_embeddings,
+    )
     cluster_count = len(cluster_results)
 
     # Step 6: Update job's fuzzy_threshold
@@ -278,6 +322,7 @@ def recluster_job(
     # Step 7: Insert new clusters and assign to rows
     warnings: list[dict] = []
     largest_cluster_size = 0
+    cluster_db_id_by_norm_key: dict[str, int] = {}
 
     # Re-fetch job rows after clearing (still have same IDs)
     fresh_job_rows = job_rows_dao.list_rows(conn, job_id)
@@ -292,6 +337,7 @@ def recluster_job(
             normalized_key=cluster.normalized_key,
             member_count=cluster.member_count,
         )
+        cluster_db_id_by_norm_key[cluster.normalized_key] = cluster_db_id
 
         # Track largest cluster
         if cluster.member_count > largest_cluster_size:
@@ -336,19 +382,26 @@ def recluster_job(
 
     # Step 11: Build top clusters (largest 10)
     sorted_clusters = sorted(cluster_results, key=lambda c: c.member_count, reverse=True)[:10]
-    # Build a mapping from row_index to original for efficient lookup
-    original_by_index = {r.row_index: r.original for r in fresh_job_rows}
+    row_by_index_fresh = {r.row_index: r for r in fresh_job_rows}
     top_clusters = [
         {
+            "cluster_id": cluster_db_id_by_norm_key[c.normalized_key],
             "representative": c.representative_original,
+            "normalized_key": c.normalized_key,
             "member_count": c.member_count,
-            "members": [
-                original_by_index[idx]
+            "members": [row_by_index_fresh[idx].original for idx in sorted(c.member_row_indices)],
+            "member_sims": [
+                round(c.norm_to_sim.get(_normalize(row_by_index_fresh[idx].original), 100.0), 1)
                 for idx in sorted(c.member_row_indices)
             ],
         }
         for c in sorted_clusters
     ]
+
+    # Step 12: Build size distribution
+    size_distribution: dict[int, int] = {}
+    for c in cluster_results:
+        size_distribution[c.member_count] = size_distribution.get(c.member_count, 0) + 1
 
     # Return PreviewResult (job_id, total_rows unchanged)
     # For recluster, total_input_rows and selected_rows are the same as total_rows
@@ -363,6 +416,8 @@ def recluster_job(
         est_cost_usd=est_cost,
         top_clusters=top_clusters,
         warnings=warnings,
+        size_distribution=size_distribution,
+        clustering_mode="embeddings" if app_settings.openai_api_key else "fuzzy",
     )
 
 
@@ -468,28 +523,37 @@ def commit_job(
     for i in range(0, len(clusters), titles_per_request):
         cluster_groups.append(clusters[i:i + titles_per_request])
 
-    # Step 6: Build request params for each group
+    # Step 6: Build request params for each group, wrapped in the {custom_id, params}
+    # envelope that the Anthropic batch API requires. The custom_id is what comes back
+    # in results, so we use it as the batch_requests row id too.
     all_requests: list[dict] = []
+    request_cluster_groups: list[tuple[str, list[int]]] = []
     system_prompt = prompt_override if prompt_override is not None else template.system_prompt
     built_system_prompt = build_system_prompt(system_prompt, template.few_shots)
 
-    for group in cluster_groups:
+    for chunk_start, group in zip(
+        range(0, len(clusters), titles_per_request), cluster_groups
+    ):
+        # Title IDs must be positional within the chunk ("t001", "t002", ...) so the
+        # poller can map response.results[i].id back to cluster_ids[i] (see
+        # worker/poller.py::_on_batch_ended). Using cluster.id here was a long-
+        # standing bug that left every job stuck retrying with 0 resolved.
         titles = [
             TitleInput(
-                id=f"t{cluster.id:03d}",
+                id=f"t{i + 1:03d}",
                 title=cluster.representative_original,
             )
-            for cluster in group
+            for i, cluster in enumerate(group)
         ]
-        # Note: build_request_params requires len(titles) == titles_per_request,
-        # but we allow the last group to be smaller. We'll build with the actual size.
         params = build_request_params(
             titles=titles,
             system_prompt=built_system_prompt,
             taxonomy=taxonomy,
-            titles_per_request=len(titles),  # Use actual group size
+            titles_per_request=len(titles),
         )
-        all_requests.append(params)
+        custom_id = f"{job_id}-r0-c{chunk_start}"
+        all_requests.append({"custom_id": custom_id, "params": params})
+        request_cluster_groups.append((custom_id, [c.id for c in group]))
 
     # Step 7: Compute estimated cost
     estimated_cost = estimate_job_cost(len(clusters), titles_per_request)
@@ -525,13 +589,12 @@ def commit_job(
         request_count=len(cluster_groups),
     )
 
-    # Step 12: Persist batch_requests rows with cluster_ids
-    for i, group in enumerate(cluster_groups):
-        request_id = str(uuid.uuid4())
-        cluster_ids = [cluster.id for cluster in group]
+    # Step 12: Persist batch_requests rows with the same custom_id we sent to Anthropic,
+    # so the poller can match results back to clusters.
+    for custom_id, cluster_ids in request_cluster_groups:
         batch_requests_dao.insert_request(
             conn,
-            id=request_id,
+            id=custom_id,
             batch_id=batch_id,
             cluster_ids=cluster_ids,
         )

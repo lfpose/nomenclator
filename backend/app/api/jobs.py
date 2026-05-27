@@ -32,6 +32,7 @@ router = APIRouter(dependencies=[Depends(require_session)])
 
 class ReclusterRequest(BaseModel):
     threshold: int
+    canonical_titles: list[str] | None = None
 
 
 class CommitRequest(BaseModel):
@@ -82,6 +83,7 @@ async def preview(
     text: str | None = Form(None),
     row_subset_mode: str = Form("all"),
     row_subset_n: int | None = Form(None),
+    canonical_titles_text: str | None = Form(None),
     conn=Depends(db_dep),
 ):
     if not (50 <= threshold <= 100):
@@ -95,6 +97,10 @@ async def preview(
     file_bytes = await file.read() if file else None
     # Keep text as None (not empty string) so ingest validation works correctly
     text_value = text
+    canonical_list = (
+        [t.strip() for t in canonical_titles_text.splitlines() if t.strip()]
+        if canonical_titles_text else None
+    )
     try:
         result = create_preview_job(
             conn,
@@ -104,6 +110,7 @@ async def preview(
             titles_per_request=titles_per_request,
             row_subset_mode=row_subset_mode,
             row_subset_n=row_subset_n,
+            canonical_titles=canonical_list or None,
         )
     except CSVError as e:
         raise APIError(e.code, e.message, 400)
@@ -112,12 +119,16 @@ async def preview(
     return {
         "job_id": result.job_id,
         "total_rows": result.total_rows,
+        "total_input_rows": result.total_input_rows,
+        "selected_rows": result.selected_rows,
         "exact_unique_rows": result.exact_unique_rows,
         "cluster_count": result.cluster_count,
         "largest_cluster_size": result.largest_cluster_size,
         "est_cost_usd": round(result.est_cost_usd, 4),
         "top_clusters": result.top_clusters,
         "warnings": result.warnings,
+        "size_distribution": result.size_distribution,
+        "clustering_mode": result.clustering_mode,
     }
 
 
@@ -126,7 +137,7 @@ def recluster(job_id: str, body: ReclusterRequest, conn=Depends(db_dep)):
     if not (50 <= body.threshold <= 100):
         raise APIError("bad_threshold", "Threshold must be 50–100.", 400)
     try:
-        result = recluster_job(conn, job_id, body.threshold)
+        result = recluster_job(conn, job_id, body.threshold, canonical_titles=body.canonical_titles or None)
     except ValueError as e:
         msg = str(e)
         if "invalid_state" in msg:
@@ -137,12 +148,16 @@ def recluster(job_id: str, body: ReclusterRequest, conn=Depends(db_dep)):
     return {
         "job_id": result.job_id,
         "total_rows": result.total_rows,
+        "total_input_rows": result.total_input_rows,
+        "selected_rows": result.selected_rows,
         "exact_unique_rows": result.exact_unique_rows,
         "cluster_count": result.cluster_count,
         "largest_cluster_size": result.largest_cluster_size,
         "est_cost_usd": round(result.est_cost_usd, 4),
         "top_clusters": result.top_clusters,
         "warnings": result.warnings,
+        "size_distribution": result.size_distribution,
+        "clustering_mode": result.clustering_mode,
     }
 
 

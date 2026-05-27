@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Outlet } from "@tanstack/react-router";
 import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
 import { PasswordForm } from "@/components/PasswordForm";
 import { api } from "@/lib/api";
 
@@ -17,16 +16,16 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="h-screen flex flex-col overflow-hidden">
       <Header />
-      <main className="flex-1">
+      <main className="flex-1 min-h-0 flex flex-col overflow-hidden">
         {authState === "checking" && (
-          <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="flex-1 flex items-center justify-center">
             <p className="text-muted-foreground">Loading...</p>
           </div>
         )}
         {authState === "unauthenticated" && (
-          <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="flex-1 flex items-center justify-center">
             <div className="w-full max-w-sm space-y-6 px-4">
               <div className="text-center space-y-2">
                 <h1 className="text-3xl font-serif">Nomenclator</h1>
@@ -38,7 +37,6 @@ export default function RootLayout() {
         )}
         {authState === "authenticated" && <Outlet />}
       </main>
-      <Footer />
     </div>
   );
 }

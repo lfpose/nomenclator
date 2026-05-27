@@ -56,7 +56,7 @@ def get_authenticated_client(tmpdir: str, test_ip: str = "127.0.0.1"):
             sid = auth_response.cookies.get("sid")
             assert sid is not None
 
-            return test_client, sid, original_hash
+            return test_client, sid, original_hash, original_db_path
         except:
             # Restore hash on error
             app.auth.config.settings.auth_password_hash = original_hash
@@ -67,13 +67,13 @@ def get_authenticated_client(tmpdir: str, test_ip: str = "127.0.0.1"):
         raise
 
 
-def cleanup_authenticated_client(original_hash: str, tmpdir: str):
+def cleanup_authenticated_client(original_hash: str, original_db_path: str):
     """Helper to clean up after get_authenticated_client."""
     import app.auth.config
     import app.settings
 
     app.auth.config.settings.auth_password_hash = original_hash
-    app.settings.settings.database_path = f"{tmpdir}/test_backup.db"
+    app.settings.settings.database_path = original_db_path
 
 
 def get_conn(tmpdir: str):
@@ -96,7 +96,7 @@ def test_cancel_transitions_to_cancelled():
     """Cancel endpoint should transition job to cancelled state."""
     test_ip = "127.0.0.1"
     with tempfile.TemporaryDirectory() as tmpdir:
-        test_client, sid, original_hash = get_authenticated_client(tmpdir, test_ip)
+        test_client, sid, original_hash, original_db_path = get_authenticated_client(tmpdir, test_ip)
 
         try:
             # Create a preview job
@@ -134,14 +134,14 @@ def test_cancel_transitions_to_cancelled():
             conn.close()
             assert job.status == "cancelled"
         finally:
-            cleanup_authenticated_client(original_hash, tmpdir)
+            cleanup_authenticated_client(original_hash, original_db_path)
 
 
 def test_cancel_terminal_returns_409():
     """Cancel endpoint should return 409 when job is in a terminal state."""
     test_ip = "127.0.0.2"
     with tempfile.TemporaryDirectory() as tmpdir:
-        test_client, sid, original_hash = get_authenticated_client(tmpdir, test_ip)
+        test_client, sid, original_hash, original_db_path = get_authenticated_client(tmpdir, test_ip)
 
         try:
             # Create a job and manually set it to completed state
@@ -165,14 +165,14 @@ def test_cancel_terminal_returns_409():
             data = cancel_response.json()
             assert data["error"]["code"] == "invalid_state"
         finally:
-            cleanup_authenticated_client(original_hash, tmpdir)
+            cleanup_authenticated_client(original_hash, original_db_path)
 
 
 def test_cancel_missing_job_404():
     """Cancel endpoint should return 404 when job does not exist."""
     test_ip = "127.0.0.3"
     with tempfile.TemporaryDirectory() as tmpdir:
-        test_client, sid, original_hash = get_authenticated_client(tmpdir, test_ip)
+        test_client, sid, original_hash, original_db_path = get_authenticated_client(tmpdir, test_ip)
 
         try:
             # Try to cancel a non-existent job
@@ -185,4 +185,4 @@ def test_cancel_missing_job_404():
             data = cancel_response.json()
             assert data["error"]["code"] == "job_not_found"
         finally:
-            cleanup_authenticated_client(original_hash, tmpdir)
+            cleanup_authenticated_client(original_hash, original_db_path)

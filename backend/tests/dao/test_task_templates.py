@@ -9,8 +9,8 @@ def test_get_template_returns_seed_row(conn):
     assert template is not None
     assert template.id == "job_titles_es"
     assert template.name == "Spanish job title standardizer"
-    assert template.system_prompt == "PLACEHOLDER"
-    assert template.few_shots == []
+    assert template.system_prompt != "" and template.system_prompt is not None
+    assert isinstance(template.few_shots, list)
     assert template.output_columns == ["male_es", "female_es", "category"]
     assert template.default_titles_per_request == 25
 

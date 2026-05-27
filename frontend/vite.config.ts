@@ -13,10 +13,10 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      "/jobs": "http://localhost:8000",
-      "/auth": "http://localhost:8000",
-      "/me": "http://localhost:8000",
-      "/spend": "http://localhost:8000",
+      "/jobs": "http://localhost:8080",
+      "/auth": "http://localhost:8080",
+      "/me": "http://localhost:8080",
+      "/spend": "http://localhost:8080",
     },
   },
   test: {

@@ -1,7 +1,6 @@
 import { LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { Link } from "@tanstack/react-router";
 import { api } from "@/lib/api";
 import { useState } from "react";
 
@@ -28,18 +27,6 @@ export function Header() {
           <h1 className="font-serif text-xl font-semibold tracking-tight">nomenclator</h1>
         </div>
 
-        {/* Nav links in the center */}
-        <nav className="flex items-center space-x-6">
-          <Link to="/" className="text-sm font-medium transition-colors hover:text-primary">
-            Tool
-          </Link>
-          <Link to="/about" className="text-sm font-medium transition-colors hover:text-primary">
-            About
-          </Link>
-          <Link to="/docs" className="text-sm font-medium transition-colors hover:text-primary">
-            Docs
-          </Link>
-        </nav>
 
         {/* Theme toggle and logout on the right */}
         <div className="ml-auto flex items-center space-x-2">

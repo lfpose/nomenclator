@@ -105,10 +105,9 @@ def test_unknown_exception_produces_internal_error():
     with TestClient(app, raise_server_exceptions=False) as client:
         response = client.get("/test-unknown-error")
         assert response.status_code == 500
-        assert response.json() == {
-            "error": {
-                "code": "internal_error",
-                "message": "An unexpected error occurred.",
-                "details": {}
-            }
-        }
+        body = response.json()
+        assert body["error"]["code"] == "internal_error"
+        assert body["error"]["message"] == "An unexpected error occurred."
+        # path is always exposed so the dev knows which route failed.
+        assert body["error"]["details"]["path"] == "/test-unknown-error"
+        # exception_type / traceback are only included when settings.debug is true.

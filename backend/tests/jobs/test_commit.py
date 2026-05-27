@@ -238,11 +238,13 @@ def test_commit_handles_last_smaller_request(conn, fake_anthropic):
     assert len(all_cluster_ids) == len(clusters)
     assert len(set(all_cluster_ids)) == len(clusters)  # All unique
 
-    # Verify fake client received correctly-sized request params
+    # Verify fake client received correctly-sized request params. Each entry sent to
+    # the batch API is wrapped as {"custom_id": "...", "params": <message-create-body>}.
     fake_batch = fake_anthropic.batches[batch.id]
     total_titles_sent = 0
-    for req_params in fake_batch.requests:
-        # Each request should have titles matching the actual cluster count for that request
+    for entry in fake_batch.requests:
+        assert "custom_id" in entry, "batch entries must include custom_id"
+        req_params = entry["params"]
         tool_schema = req_params["tools"][0]
         min_items = tool_schema["input_schema"]["properties"]["results"]["minItems"]
         max_items = tool_schema["input_schema"]["properties"]["results"]["maxItems"]

@@ -100,14 +100,13 @@ export function HistoryList({ jobs }: HistoryListProps) {
 
                     {/* Download button for completed jobs */}
                     {job.status === "completed" && (
-                      <a
-                        href={jobsApi.downloadUrl(job.id)}
-                        download
+                      <button
+                        type="button"
                         className="flex-shrink-0 text-sm text-primary hover:underline"
-                        onClick={(e) => e.stopPropagation()}
+                        onClick={(e) => { e.stopPropagation(); jobsApi.downloadCsv(job.id); }}
                       >
                         Download
-                      </a>
+                      </button>
                     )}
                   </div>
                 </div>

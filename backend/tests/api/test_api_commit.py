@@ -57,7 +57,7 @@ def get_authenticated_client(tmpdir: str, test_ip: str = "127.0.0.1"):
             sid = auth_response.cookies.get("sid")
             assert sid is not None
 
-            return test_client, sid, original_hash
+            return test_client, sid, original_hash, original_db_path
         except:
             # Restore hash on error
             app.auth.config.settings.auth_password_hash = original_hash
@@ -68,13 +68,13 @@ def get_authenticated_client(tmpdir: str, test_ip: str = "127.0.0.1"):
         raise
 
 
-def cleanup_authenticated_client(original_hash: str, tmpdir: str):
+def cleanup_authenticated_client(original_hash: str, original_db_path: str):
     """Helper to clean up after get_authenticated_client."""
     import app.auth.config
     import app.settings
 
     app.auth.config.settings.auth_password_hash = original_hash
-    app.settings.settings.database_path = f"{tmpdir}/test_backup.db"
+    app.settings.settings.database_path = original_db_path
 
 
 def get_conn(tmpdir: str):
@@ -97,7 +97,7 @@ def test_commit_happy_path_returns_202():
     """Commit endpoint should return 202 and transition job to submitted state."""
     test_ip = "127.0.0.1"
     with tempfile.TemporaryDirectory() as tmpdir:
-        test_client, sid, original_hash = get_authenticated_client(tmpdir, test_ip)
+        test_client, sid, original_hash, original_db_path = get_authenticated_client(tmpdir, test_ip)
 
         try:
             # Create a preview job
@@ -132,14 +132,14 @@ def test_commit_happy_path_returns_202():
             conn.close()
             assert job.status == "submitted"
         finally:
-            cleanup_authenticated_client(original_hash, tmpdir)
+            cleanup_authenticated_client(original_hash, original_db_path)
 
 
 def test_commit_spend_cap_returns_409():
     """Commit endpoint should return 409 when spend cap is exceeded."""
     test_ip = "127.0.0.2"
     with tempfile.TemporaryDirectory() as tmpdir:
-        test_client, sid, original_hash = get_authenticated_client(tmpdir, test_ip)
+        test_client, sid, original_hash, original_db_path = get_authenticated_client(tmpdir, test_ip)
 
         try:
             # Pre-seed spend log to hit cap limit ($20)
@@ -184,14 +184,14 @@ def test_commit_spend_cap_returns_409():
             data = commit_response.json()
             assert data["error"]["code"] == "spend_cap_exceeded"
         finally:
-            cleanup_authenticated_client(original_hash, tmpdir)
+            cleanup_authenticated_client(original_hash, original_db_path)
 
 
 def test_commit_concurrent_returns_409():
     """Commit endpoint should return 409 when another job is already running."""
     test_ip = "127.0.0.3"
     with tempfile.TemporaryDirectory() as tmpdir:
-        test_client, sid, original_hash = get_authenticated_client(tmpdir, test_ip)
+        test_client, sid, original_hash, original_db_path = get_authenticated_client(tmpdir, test_ip)
 
         try:
             # Create first preview job and commit it
@@ -242,14 +242,14 @@ def test_commit_concurrent_returns_409():
             data = commit_response2.json()
             assert data["error"]["code"] == "job_already_running"
         finally:
-            cleanup_authenticated_client(original_hash, tmpdir)
+            cleanup_authenticated_client(original_hash, original_db_path)
 
 
 def test_commit_non_preview_returns_409():
     """Commit endpoint should return 409 when job is not in preview state."""
     test_ip = "127.0.0.4"
     with tempfile.TemporaryDirectory() as tmpdir:
-        test_client, sid, original_hash = get_authenticated_client(tmpdir, test_ip)
+        test_client, sid, original_hash, original_db_path = get_authenticated_client(tmpdir, test_ip)
 
         try:
             # Create a job and manually set it to completed state
@@ -274,14 +274,14 @@ def test_commit_non_preview_returns_409():
             data = commit_response.json()
             assert data["error"]["code"] == "invalid_state"
         finally:
-            cleanup_authenticated_client(original_hash, tmpdir)
+            cleanup_authenticated_client(original_hash, original_db_path)
 
 
 def test_commit_missing_job_returns_404():
     """Commit endpoint should return 404 when job does not exist."""
     test_ip = "127.0.0.5"
     with tempfile.TemporaryDirectory() as tmpdir:
-        test_client, sid, original_hash = get_authenticated_client(tmpdir, test_ip)
+        test_client, sid, original_hash, original_db_path = get_authenticated_client(tmpdir, test_ip)
 
         try:
             # Try to commit a non-existent job
@@ -295,14 +295,14 @@ def test_commit_missing_job_returns_404():
             data = commit_response.json()
             assert data["error"]["code"] == "job_not_found"
         finally:
-            cleanup_authenticated_client(original_hash, tmpdir)
+            cleanup_authenticated_client(original_hash, original_db_path)
 
 
 def test_commit_rate_limited_after_10():
     """Commit endpoint should rate limit after 10 commits per hour."""
     test_ip = "127.0.0.6"
     with tempfile.TemporaryDirectory() as tmpdir:
-        test_client, sid, original_hash = get_authenticated_client(tmpdir, test_ip)
+        test_client, sid, original_hash, original_db_path = get_authenticated_client(tmpdir, test_ip)
 
         try:
             # Create 10 preview jobs and commit them in dry-run mode
@@ -353,4 +353,4 @@ def test_commit_rate_limited_after_10():
             data = commit_response.json()
             assert data["error"]["code"] == "rate_limited"
         finally:
-            cleanup_authenticated_client(original_hash, tmpdir)
+            cleanup_authenticated_client(original_hash, original_db_path)

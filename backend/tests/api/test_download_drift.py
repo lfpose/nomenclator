@@ -53,7 +53,7 @@ def get_authenticated_client(tmpdir: str, test_ip: str = "127.0.0.1"):
             sid = auth_response.cookies.get("sid")
             assert sid is not None
 
-            return test_client, sid, original_hash
+            return test_client, sid, original_hash, original_db_path
         except:
             # Restore hash on error
             config.settings.auth_password_hash = original_hash
@@ -64,17 +64,22 @@ def get_authenticated_client(tmpdir: str, test_ip: str = "127.0.0.1"):
         raise
 
 
-def cleanup_authenticated_client(test_client, sid):
+def cleanup_authenticated_client(test_client, sid, original_hash=None, original_db_path=None):
     """Clean up authenticated session."""
     if sid:
         test_client.post("/auth/logout", cookies={"sid": sid})
+    if original_hash is not None:
+        from app.auth import config
+        config.settings.auth_password_hash = original_hash
+    if original_db_path is not None:
+        app.settings.settings.database_path = original_db_path
 
 
 def test_download_drift_transitions_job_to_failed():
     """Verifies job transitions to failed state on row count drift."""
     test_ip = "127.0.0.1"
     with tempfile.TemporaryDirectory() as tmpdir:
-        test_client, sid, original_hash = get_authenticated_client(tmpdir, test_ip)
+        test_client, sid, original_hash, original_db_path = get_authenticated_client(tmpdir, test_ip)
 
         try:
             # Get database path from settings
@@ -115,14 +120,14 @@ def test_download_drift_transitions_job_to_failed():
             job_data = job_response.json()
             assert job_data["status"] == "failed"
         finally:
-            cleanup_authenticated_client(test_client, sid)
+            cleanup_authenticated_client(test_client, sid, original_hash, original_db_path)
 
 
 def test_download_drift_returns_500():
     """Verifies drift returns 500 internal error."""
     test_ip = "127.0.0.2"
     with tempfile.TemporaryDirectory() as tmpdir:
-        test_client, sid, original_hash = get_authenticated_client(tmpdir, test_ip)
+        test_client, sid, original_hash, original_db_path = get_authenticated_client(tmpdir, test_ip)
 
         try:
             db_path = app.settings.settings.database_path
@@ -161,14 +166,14 @@ def test_download_drift_returns_500():
             assert data["error"]["code"] == "internal_error"
             assert "drift" in data["error"]["message"].lower()
         finally:
-            cleanup_authenticated_client(test_client, sid)
+            cleanup_authenticated_client(test_client, sid, original_hash, original_db_path)
 
 
 def test_download_drift_never_returns_csv_bytes():
     """Verifies drift never returns CSV bytes (always returns error JSON)."""
     test_ip = "127.0.0.3"
     with tempfile.TemporaryDirectory() as tmpdir:
-        test_client, sid, original_hash = get_authenticated_client(tmpdir, test_ip)
+        test_client, sid, original_hash, original_db_path = get_authenticated_client(tmpdir, test_ip)
 
         try:
             db_path = app.settings.settings.database_path
@@ -216,4 +221,4 @@ def test_download_drift_never_returns_csv_bytes():
             assert not content.startswith(b"\xef\xbb\xbf")  # No BOM
             assert b"original,male_es,female_es,category,error" not in content  # No CSV header
         finally:
-            cleanup_authenticated_client(test_client, sid)
+            cleanup_authenticated_client(test_client, sid, original_hash, original_db_path)

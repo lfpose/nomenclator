@@ -24,10 +24,17 @@ class RealAnthropicClient:
 
     def get_batch_status(self, batch_id: str) -> dict:
         batch = self._anthropic.messages.batches.retrieve(batch_id)
-        return {"id": batch.id, "processing_status": batch.processing_status, "ended_at": batch.ended_at}
+        return {
+            "id": batch.id,
+            "processing_status": batch.processing_status,
+            "ended_at": batch.ended_at,
+        }
 
     def get_batch_results(self, batch_id: str) -> list[dict]:
-        return list(self._anthropic.messages.batches.results(batch_id))
+        # The Anthropic SDK returns Pydantic models; the poller (and the
+        # FakeAnthropicBatchClient used in tests) expects plain dicts so it can
+        # do result["custom_id"] etc. Convert here once, at the boundary.
+        return [r.model_dump() for r in self._anthropic.messages.batches.results(batch_id)]
 
     def cancel_batch(self, batch_id: str) -> None:
         self._anthropic.messages.batches.cancel(batch_id)

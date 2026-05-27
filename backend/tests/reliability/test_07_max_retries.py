@@ -328,8 +328,18 @@ def test_persistent_failure_ends_in_completed_not_failed(conn, fake_anthropic):
 
 def test_flagged_rows_have_max_retries_exceeded_error_code(conn, fake_anthropic):
     """Persistently failing rows should have error == 'max_retries_exceeded'."""
-    # Create 10 unique titles
-    titles = [f"Job Title {i}" for i in range(10)]
+    titles = [
+        "Software Engineer",
+        "Product Manager",
+        "Data Scientist",
+        "Marketing Director",
+        "Sales Representative",
+        "Financial Analyst",
+        "Human Resources Manager",
+        "Operations Director",
+        "Legal Counsel",
+        "Customer Service Agent",
+    ]
     csv_data = "\n".join(titles).encode("utf-8")
 
     # Create preview job

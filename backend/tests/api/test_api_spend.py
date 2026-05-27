@@ -46,7 +46,7 @@ def get_authenticated_client(tmpdir: str, test_ip: str = "127.0.0.1"):
             sid = auth_response.cookies.get("sid")
             assert sid is not None
 
-            return test_client, sid, original_hash
+            return test_client, sid, original_hash, original_db_path
         except:
             # Restore hash on error
             config.settings.auth_password_hash = original_hash
@@ -57,17 +57,22 @@ def get_authenticated_client(tmpdir: str, test_ip: str = "127.0.0.1"):
         raise
 
 
-def cleanup_authenticated_client(test_client, sid):
+def cleanup_authenticated_client(test_client, sid, original_hash=None, original_db_path=None):
     """Clean up authenticated session."""
     if sid:
         test_client.post("/auth/logout", cookies={"sid": sid})
+    if original_hash is not None:
+        from app.auth import config
+        config.settings.auth_password_hash = original_hash
+    if original_db_path is not None:
+        app.settings.settings.database_path = original_db_path
 
 
 def test_spend_empty_returns_zero():
     """Verify spend returns zero when no entries exist."""
     test_ip = "127.0.0.1"
     with tempfile.TemporaryDirectory() as tmpdir:
-        test_client, sid, original_hash = get_authenticated_client(tmpdir, test_ip)
+        test_client, sid, original_hash, original_db_path = get_authenticated_client(tmpdir, test_ip)
 
         try:
             response = test_client.get("/spend", cookies={"sid": sid})
@@ -78,14 +83,14 @@ def test_spend_empty_returns_zero():
             assert data["window_days"] == 30
             assert data["reset_date"] is None
         finally:
-            cleanup_authenticated_client(test_client, sid)
+            cleanup_authenticated_client(test_client, sid, original_hash, original_db_path)
 
 
 def test_spend_after_entries_returns_sum():
     """Verify spend returns sum of entries in 30-day window."""
     test_ip = "127.0.0.2"
     with tempfile.TemporaryDirectory() as tmpdir:
-        test_client, sid, original_hash = get_authenticated_client(tmpdir, test_ip)
+        test_client, sid, original_hash, original_db_path = get_authenticated_client(tmpdir, test_ip)
 
         try:
             # Get database path and create some spend entries
@@ -121,7 +126,7 @@ def test_spend_after_entries_returns_sum():
             assert data["cap_usd"] == 20.0
             assert data["window_days"] == 30
         finally:
-            cleanup_authenticated_client(test_client, sid)
+            cleanup_authenticated_client(test_client, sid, original_hash, original_db_path)
 
 
 def test_spend_reset_date_when_entries_exist():
@@ -130,7 +135,7 @@ def test_spend_reset_date_when_entries_exist():
 
     test_ip = "127.0.0.3"
     with tempfile.TemporaryDirectory() as tmpdir:
-        test_client, sid, original_hash = get_authenticated_client(tmpdir, test_ip)
+        test_client, sid, original_hash, original_db_path = get_authenticated_client(tmpdir, test_ip)
 
         try:
             db_path = app.settings.settings.database_path
@@ -170,4 +175,4 @@ def test_spend_reset_date_when_entries_exist():
             # Allow for small time differences
             assert abs((reset_date - expected_reset).days) <= 1
         finally:
-            cleanup_authenticated_client(test_client, sid)
+            cleanup_authenticated_client(test_client, sid, original_hash, original_db_path)

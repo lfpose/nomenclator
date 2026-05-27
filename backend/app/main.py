@@ -1,5 +1,7 @@
+import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 
 from .api.auth import router as auth_router
 from .api.errors import register_handlers
@@ -40,6 +42,9 @@ def create_app() -> FastAPI:
     app.include_router(jobs_router, prefix="/jobs", tags=["jobs"])
     app.include_router(spend_router, prefix="/spend", tags=["spend"])
     app.include_router(health_router, prefix="/health", tags=["health"])
+
+    if os.path.isdir(settings.static_dir):
+        app.mount("/", StaticFiles(directory=settings.static_dir, html=True), name="static")
 
     return app
 

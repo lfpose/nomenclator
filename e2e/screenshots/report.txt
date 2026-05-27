@@ -1,0 +1,36 @@
+
+=== / (200) ===
+title: Nomenclator
+shot: screenshots/_.png
+errors:
+  - Failed to load resource: the server responded with a status of 401 (Unauthorized)
+  - Failed to load resource: the server responded with a status of 401 (Unauthorized)
+failed-requests:
+  - 401 GET http://localhost:5173/me
+  - 401 GET http://localhost:5173/me
+  - 401 GET http://localhost:5173/me
+  - 401 GET http://localhost:5173/me
+  - 401 GET http://localhost:5173/me
+  - 401 GET http://localhost:5173/me
+
+=== /about (200) ===
+title: Nomenclator
+shot: screenshots/_about.png
+errors:
+  - Failed to load resource: the server responded with a status of 401 (Unauthorized)
+  - Failed to load resource: the server responded with a status of 401 (Unauthorized)
+failed-requests:
+  - 401 GET http://localhost:5173/me
+  - 401 GET http://localhost:5173/me
+  - 401 GET http://localhost:5173/me
+  - 401 GET http://localhost:5173/me
+
+=== /docs (200) ===
+title: Nomenclator
+shot: screenshots/_docs.png
+errors:
+  - Failed to load resource: the server responded with a status of 401 (Unauthorized)
+  - Failed to load resource: the server responded with a status of 401 (Unauthorized)
+failed-requests:
+  - 401 GET http://localhost:5173/me
+  - 401 GET http://localhost:5173/me

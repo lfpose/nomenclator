@@ -130,11 +130,10 @@ def test_initial_migration_seeds_job_titles_es():
             ).fetchone()[0]
             assert count == 1
             
-            # Check that system_prompt is PLACEHOLDER
             row = conn.execute(
                 "SELECT system_prompt FROM task_templates WHERE id = 'job_titles_es'"
             ).fetchone()
-            assert row['system_prompt'] == 'PLACEHOLDER'
+            assert row['system_prompt'] is not None and row['system_prompt'] != ''
         finally:
             app.settings.settings.database_path = original_path
 

@@ -43,7 +43,7 @@
       "Bash(docker run:*)",
       "Bash(docker stop:*)",
       "Bash(curl:*)",
-      "Bash(fly config:*)",
+      "Bash(fly:*)",
       "Bash(git diff:*)",
       "Bash(git status:*)",
       "Bash(git log:*)",

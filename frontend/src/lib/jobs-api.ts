@@ -13,19 +13,13 @@ export type ReviewResponse = {
   summary: string;
 };
 
-export type ClusterMember = {
-  cluster_id: number;
-  row_index: number;
-  original: string;
-  normalized: string;
-};
-
 export type TopCluster = {
   cluster_id: number;
-  representative_original: string;
+  representative: string;
   normalized_key: string;
   member_count: number;
-  members: ClusterMember[];
+  members: string[];
+  member_sims: number[];
 };
 
 export type PreviewWarning = {
@@ -42,9 +36,55 @@ export type PreviewResponse = {
   est_cost_usd: number;
   top_clusters: TopCluster[];
   warnings: PreviewWarning[];
+  size_distribution: Record<string, number>;
+  clustering_mode: string;
   total_input_rows?: number;
   selected_rows?: number;
 };
+
+/**
+ * Runtime validator for PreviewResponse. Throws with a precise message when a
+ * required field is missing or the wrong type. Exists to catch BE/FE contract
+ * drift loudly instead of silently rendering `undefined`.
+ */
+export function validatePreviewResponse(raw: unknown): PreviewResponse {
+  const r = raw as Record<string, unknown>;
+  const missing: string[] = [];
+  const required = [
+    "job_id",
+    "total_rows",
+    "exact_unique_rows",
+    "cluster_count",
+    "largest_cluster_size",
+    "est_cost_usd",
+    "top_clusters",
+    "warnings",
+    "size_distribution",
+    "clustering_mode",
+  ];
+  for (const k of required) if (r?.[k] === undefined) missing.push(k);
+  if (missing.length) {
+    throw new Error(
+      `PreviewResponse missing fields: ${missing.join(", ")}. Got: ${JSON.stringify(r).slice(0, 300)}`
+    );
+  }
+  const clusters = r.top_clusters as unknown;
+  if (!Array.isArray(clusters)) {
+    throw new Error("PreviewResponse.top_clusters is not an array");
+  }
+  clusters.forEach((c, i) => {
+    const cc = c as Record<string, unknown>;
+    const need = ["cluster_id", "representative", "normalized_key", "member_count", "members"];
+    const miss = need.filter((k) => cc?.[k] === undefined);
+    if (miss.length) {
+      throw new Error(`top_clusters[${i}] missing: ${miss.join(", ")}. Got keys: ${Object.keys(cc).join(",")}`);
+    }
+    if (!Array.isArray(cc.members)) {
+      throw new Error(`top_clusters[${i}].members is not an array`);
+    }
+  });
+  return r as unknown as PreviewResponse;
+}
 
 export type JobSummary = {
   id: string;
@@ -100,14 +140,23 @@ export const jobsApi = {
    * FormData should include: file (File), text (string), threshold (number), titles_per_request (number)
    * Optionally: row_subset_mode (string), row_subset_n (number)
    */
-  preview: (form: FormData): Promise<PreviewResponse> =>
-    api.postForm<PreviewResponse>("/jobs/preview", form),
+  preview: async (form: FormData): Promise<PreviewResponse> => {
+    const raw = await api.postForm<unknown>("/jobs/preview", form);
+    if (import.meta.env.DEV) console.debug("[preview response]", raw);
+    return validatePreviewResponse(raw);
+  },
 
   /**
    * Recluster an existing job with a new threshold
    */
-  recluster: (jobId: string, threshold: number): Promise<PreviewResponse> =>
-    api.post<PreviewResponse>(`/jobs/${jobId}/recluster`, { threshold }),
+  recluster: async (jobId: string, threshold: number, canonicalTitles?: string[]): Promise<PreviewResponse> => {
+    const raw = await api.post<unknown>(`/jobs/${jobId}/recluster`, {
+      threshold,
+      ...(canonicalTitles?.length ? { canonical_titles: canonicalTitles } : {}),
+    });
+    if (import.meta.env.DEV) console.debug("[recluster response]", raw);
+    return validatePreviewResponse(raw);
+  },
 
   /**
    * Commit a job to be processed by Anthropic
@@ -143,9 +192,21 @@ export const jobsApi = {
     api.get<JobDetail>(`/jobs/${jobId}`),
 
   /**
-   * Get the download URL for a completed job
+   * Download the CSV for a completed job, ensuring credentials are sent.
    */
-  downloadUrl: (jobId: string): string => `/jobs/${jobId}/download`,
+  downloadCsv: async (jobId: string): Promise<void> => {
+    const res = await fetch(`/jobs/${jobId}/download`, { credentials: "include" });
+    if (!res.ok) throw new Error(`Download failed: ${res.status}`);
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `nomenclator-${jobId.replace(/-/g, "").slice(0, 8)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  },
 
   /**
    * Get current spend status

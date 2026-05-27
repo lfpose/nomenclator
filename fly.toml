@@ -1,5 +1,5 @@
 app = "nomenclator"
-primary_region = "scl"
+primary_region = "gru"
 
 [build]
 dockerfile = "Dockerfile"
@@ -11,6 +11,11 @@ STATIC_DIR = "/app/static"
 [[mounts]]
 source = "nomenclator_data"
 destination = "/data"
+
+[vm]
+memory = "512mb"
+cpu_kind = "shared"
+cpus = 1
 
 [http_service]
 internal_port = 8080

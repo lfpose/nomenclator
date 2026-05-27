@@ -48,7 +48,7 @@ def get_authenticated_client(tmpdir: str, test_ip: str = "127.0.0.1"):
             sid = auth_response.cookies.get("sid")
             assert sid is not None
 
-            return test_client, sid, original_hash
+            return test_client, sid, original_hash, original_db_path
         except:
             # Restore hash on error
             app.auth.config.settings.auth_password_hash = original_hash
@@ -59,20 +59,20 @@ def get_authenticated_client(tmpdir: str, test_ip: str = "127.0.0.1"):
         raise
 
 
-def cleanup_authenticated_client(original_hash: str, tmpdir: str, test_ip: str | None = None):
+def cleanup_authenticated_client(original_hash: str, original_db_path: str, test_ip: str | None = None):
     """Helper to clean up after get_authenticated_client."""
     import app.auth.config
     import app.settings
 
     app.auth.config.settings.auth_password_hash = original_hash
-    app.settings.settings.database_path = f"{tmpdir}/test_backup.db"
+    app.settings.settings.database_path = original_db_path
 
 
 def test_preview_with_csv_file_returns_payload():
     """Test that /jobs/preview returns payload with CSV file input."""
     test_ip = "127.0.0.1"
     with tempfile.TemporaryDirectory() as tmpdir:
-        test_client, sid, original_hash = get_authenticated_client(tmpdir, test_ip)
+        test_client, sid, original_hash, original_db_path = get_authenticated_client(tmpdir, test_ip)
 
         try:
             # Create a simple CSV file with job titles
@@ -119,14 +119,14 @@ Gerente de Recursos Humanos"""
             assert len(str(data["est_cost_usd"]).split(".")[-1]) <= 4
 
         finally:
-            cleanup_authenticated_client(original_hash, tmpdir)
+            cleanup_authenticated_client(original_hash, original_db_path)
 
 
 def test_preview_with_pasted_text_returns_payload():
     """Test that /jobs/preview returns payload with pasted text input."""
     test_ip = "127.0.0.2"
     with tempfile.TemporaryDirectory() as tmpdir:
-        test_client, sid, original_hash = get_authenticated_client(tmpdir, test_ip)
+        test_client, sid, original_hash, original_db_path = get_authenticated_client(tmpdir, test_ip)
 
         try:
             # Create text content with job titles
@@ -155,14 +155,14 @@ def test_preview_with_pasted_text_returns_payload():
             assert "cluster_count" in data
 
         finally:
-            cleanup_authenticated_client(original_hash, tmpdir)
+            cleanup_authenticated_client(original_hash, original_db_path)
 
 
 def test_preview_bad_threshold_400():
     """Test that /jobs/preview returns 400 for bad threshold."""
     test_ip = "127.0.0.3"
     with tempfile.TemporaryDirectory() as tmpdir:
-        test_client, sid, original_hash = get_authenticated_client(tmpdir, test_ip)
+        test_client, sid, original_hash, original_db_path = get_authenticated_client(tmpdir, test_ip)
 
         try:
             # Test threshold below 50
@@ -201,14 +201,14 @@ def test_preview_bad_threshold_400():
             assert data["error"]["code"] == "bad_threshold"
 
         finally:
-            cleanup_authenticated_client(original_hash, tmpdir)
+            cleanup_authenticated_client(original_hash, original_db_path)
 
 
 def test_preview_bad_tpr_400():
     """Test that /jobs/preview returns 400 for bad titles_per_request."""
     test_ip = "127.0.0.4"
     with tempfile.TemporaryDirectory() as tmpdir:
-        test_client, sid, original_hash = get_authenticated_client(tmpdir, test_ip)
+        test_client, sid, original_hash, original_db_path = get_authenticated_client(tmpdir, test_ip)
 
         try:
             # Test TPR below 1
@@ -247,14 +247,14 @@ def test_preview_bad_tpr_400():
             assert data["error"]["code"] == "bad_titles_per_request"
 
         finally:
-            cleanup_authenticated_client(original_hash, tmpdir)
+            cleanup_authenticated_client(original_hash, original_db_path)
 
 
 def test_preview_empty_csv_400():
     """Test that /jobs/preview returns 400 for empty CSV."""
     test_ip = "127.0.0.5"
     with tempfile.TemporaryDirectory() as tmpdir:
-        test_client, sid, original_hash = get_authenticated_client(tmpdir, test_ip)
+        test_client, sid, original_hash, original_db_path = get_authenticated_client(tmpdir, test_ip)
 
         try:
             # Test empty CSV file
@@ -294,7 +294,7 @@ def test_preview_empty_csv_400():
             assert data["error"]["code"] == "input_empty"
 
         finally:
-            cleanup_authenticated_client(original_hash, tmpdir)
+            cleanup_authenticated_client(original_hash, original_db_path)
 
 
 def test_preview_requires_auth():
@@ -346,7 +346,7 @@ def test_preview_returns_job_id_in_preview_state():
     """Test that /jobs/preview creates job in preview state."""
     test_ip = "127.0.0.6"
     with tempfile.TemporaryDirectory() as tmpdir:
-        test_client, sid, original_hash = get_authenticated_client(tmpdir, test_ip)
+        test_client, sid, original_hash, original_db_path = get_authenticated_client(tmpdir, test_ip)
 
         try:
             # Create a simple CSV file
@@ -370,27 +370,16 @@ def test_preview_returns_job_id_in_preview_state():
             data = response.json()
             job_id = data["job_id"]
 
-            # Verify the job is in preview state by checking the job details
-            # First, we need to query the job directly from the database
-            import app.settings
+            # Verify the job is in preview state by checking the job directly from the database
+            from app.dao.jobs import get_job
+            from app.db import get_connection
 
-            original_db_path = app.settings.settings.database_path
-            app.settings.settings.database_path = f"{tmpdir}/test.db"
+            conn = get_connection()
+            job = get_job(conn, job_id)
+            conn.close()
 
-            try:
-                from app.dao.jobs import get_job
-                from app.db import get_connection
-
-                conn = get_connection()
-                job = get_job(conn, job_id)
-                conn.close()
-
-                # Verify job status is 'preview'
-                assert job is not None
-                assert job.status == "preview"
-
-            finally:
-                app.settings.settings.database_path = original_db_path
+            assert job is not None
+            assert job.status == "preview"
 
         finally:
-            cleanup_authenticated_client(original_hash, tmpdir)
+            cleanup_authenticated_client(original_hash, original_db_path)

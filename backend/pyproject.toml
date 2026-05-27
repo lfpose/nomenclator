@@ -14,6 +14,7 @@ dependencies = [
     "python-multipart>=0.0.12",
     "argon2-cffi>=23.1",
     "anthropic>=0.39",
+    "openai>=1.0",
 ]
 
 [project.optional-dependencies]
@@ -28,6 +29,7 @@ dev = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+pythonpath = ["."]
 
 [build-system]
 requires = ["hatchling"]

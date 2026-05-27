@@ -1,0 +1,53 @@
+
+
+
+2 · SETTINGS
+3 · PROMPT
+Re-preview
+(500 singletons)
+Size distribution
+#1
+Gerente Operaciones
+key: gerente operaciones
+8 members
+#2
+Gerente de Adm. y Finanzas
+key: gerente de adm y finanzas
+4 members
+#3
+Gerente de Recursos Humanos
+key: gerente de recursos humanos
+4 members
+#4
+Subgerente de Personas
+key: subgerente de personas
+4 members
+#5
+Human Resources Partner
+key: human resources partner
+4 members
+#6
+Director de operaciones
+key: director de operaciones
+3 members
+#7
+Director de Recursos Humanos
+key: director de recursos humanos
+3 members
+#8
+Gerente Desarrollo Organizacional
+key: gerente desarrollo organizacional
+3 members
+#9
+Gerente Regional Recursos Humanos
+key: gerente regional recursos humanos
+3 members
+#10
+Jefe De Relaciones Laborales
+key: jefe de relaciones laborales
+3 members
+Re-cluster (t=90)
+Re-cluster (t=90)
+Submit job
+Show raw response
+History (3)

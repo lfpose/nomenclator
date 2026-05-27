@@ -52,7 +52,7 @@ def get_authenticated_client(tmpdir: str, test_ip: str = "127.0.0.1"):
             sid = auth_response.cookies.get("sid")
             assert sid is not None
 
-            return test_client, sid, original_hash
+            return test_client, sid, original_hash, original_db_path
         except:
             # Restore hash on error
             config.settings.auth_password_hash = original_hash
@@ -63,17 +63,22 @@ def get_authenticated_client(tmpdir: str, test_ip: str = "127.0.0.1"):
         raise
 
 
-def cleanup_authenticated_client(test_client, sid):
+def cleanup_authenticated_client(test_client, sid, original_hash=None, original_db_path=None):
     """Clean up authenticated session."""
     if sid:
         test_client.post("/auth/logout", cookies={"sid": sid})
+    if original_hash is not None:
+        from app.auth import config
+        config.settings.auth_password_hash = original_hash
+    if original_db_path is not None:
+        app.settings.settings.database_path = original_db_path
 
 
 def test_download_completed_job_returns_csv():
     """Verifies download returns CSV for a completed job."""
     test_ip = "127.0.0.1"
     with tempfile.TemporaryDirectory() as tmpdir:
-        test_client, sid, original_hash = get_authenticated_client(tmpdir, test_ip)
+        test_client, sid, original_hash, original_db_path = get_authenticated_client(tmpdir, test_ip)
 
         try:
             # Create a preview job
@@ -121,14 +126,14 @@ def test_download_completed_job_returns_csv():
             assert "Ingeniero de Ventas" in content_str
             assert "Gerente de Marketing" in content_str
         finally:
-            cleanup_authenticated_client(test_client, sid)
+            cleanup_authenticated_client(test_client, sid, original_hash, original_db_path)
 
 
 def test_download_starts_with_utf8_bom():
     """Verifies download starts with UTF-8 BOM."""
     test_ip = "127.0.0.2"
     with tempfile.TemporaryDirectory() as tmpdir:
-        test_client, sid, original_hash = get_authenticated_client(tmpdir, test_ip)
+        test_client, sid, original_hash, original_db_path = get_authenticated_client(tmpdir, test_ip)
 
         try:
             # Create and commit a job
@@ -153,14 +158,14 @@ def test_download_starts_with_utf8_bom():
             assert download_response.status_code == 200
             assert download_response.content.startswith(b"\xef\xbb\xbf")
         finally:
-            cleanup_authenticated_client(test_client, sid)
+            cleanup_authenticated_client(test_client, sid, original_hash, original_db_path)
 
 
 def test_download_filename_header_set():
     """Verifies filename is set correctly in Content-Disposition header."""
     test_ip = "127.0.0.3"
     with tempfile.TemporaryDirectory() as tmpdir:
-        test_client, sid, original_hash = get_authenticated_client(tmpdir, test_ip)
+        test_client, sid, original_hash, original_db_path = get_authenticated_client(tmpdir, test_ip)
 
         try:
             # Create and commit a job
@@ -191,14 +196,14 @@ def test_download_filename_header_set():
             job_id_short = job_id.replace("-", "")[:8]
             assert job_id_short in content_disposition
         finally:
-            cleanup_authenticated_client(test_client, sid)
+            cleanup_authenticated_client(test_client, sid, original_hash, original_db_path)
 
 
 def test_download_non_completed_returns_409():
     """Verifies download returns 409 for non-completed jobs."""
     test_ip = "127.0.0.4"
     with tempfile.TemporaryDirectory() as tmpdir:
-        test_client, sid, original_hash = get_authenticated_client(tmpdir, test_ip)
+        test_client, sid, original_hash, original_db_path = get_authenticated_client(tmpdir, test_ip)
 
         try:
             # Create a preview job (not committed)
@@ -217,14 +222,14 @@ def test_download_non_completed_returns_409():
             data = download_response.json()
             assert data["error"]["code"] == "invalid_state"
         finally:
-            cleanup_authenticated_client(test_client, sid)
+            cleanup_authenticated_client(test_client, sid, original_hash, original_db_path)
 
 
 def test_download_missing_404():
     """Verifies download returns 404 for missing job."""
     test_ip = "127.0.0.5"
     with tempfile.TemporaryDirectory() as tmpdir:
-        test_client, sid, original_hash = get_authenticated_client(tmpdir, test_ip)
+        test_client, sid, original_hash, original_db_path = get_authenticated_client(tmpdir, test_ip)
 
         try:
             # Try to download a non-existent job
@@ -236,4 +241,4 @@ def test_download_missing_404():
             data = download_response.json()
             assert data["error"]["code"] == "job_not_found"
         finally:
-            cleanup_authenticated_client(test_client, sid)
+            cleanup_authenticated_client(test_client, sid, original_hash, original_db_path)
